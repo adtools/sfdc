@@ -1,21 +1,11 @@
-%define Name sfdc
-%define Version 1.5
+Short:        Compile SFD files into someting useful (v1.5)
+Author:       Martin Blom <martin@blom.org>
+Uploader:     Martin Blom <martin@blom.org>
+Type:         dev/gcc
+Requires:     perl
+Version:      1.5
+Architecture: all
 
-Name        	: gg-%{Name}
-Version     	: %{Version}
-Release     	: 1
-
-Summary     	: Compile SFD files into someting useful
-Group       	: Development/Tools
-Copyright   	: GPL
-URL         	: http://www.lysator.liu.se/~lcs/files/gg-cross/
-
-Source0		: http://www.lysator.liu.se/~lcs/files/gg-cross/%{Name}-%{Version}.tar.gz
-BuildRoot   	: /tmp/%{Name}-%{Version}
-
-BuildRequires   : perl
-
-%description
 sfdc is an open source replacement for Amiga, Inc.'s sfd tool,
 distributed with NDK 3.9. It is also an replacement for fd2inline.
 
@@ -39,45 +29,12 @@ From this information, sfdc can:
     all functions in the library.
 
 *   Generate C stubs, which can be compiled and archived into a stub
-    library.
+    library. It can also generate auto-open and auto-close code.
 
 *   Generate library gateway stubs, which can be used as part of your
     module as glue between the module function table and your C
     functions.
 
 Additionally, sfdc does all this for several Amiga-like operating
-systems: traditional AmigaOS, native Amithlon, AROS and MorphOS.
-
-
-%prep
-%setup -q -n %{Name}-%{Version}
-
-%build
-%configure
-make all
-
-
-%install
-rm -rf ${RPM_BUILD_ROOT}
-%makeinstall
-
-
-%clean
-rm -rf ${RPM_BUILD_ROOT}
-
-
-%files
-%defattr(-,root,root)
-%doc COPYING sfdc.txt
-%{_bindir}/*
-%{_mandir}/man1/*
-
-%changelog
-* Mon Sep 12 2005 Martin Blom <martin@blom.org> - 
-- Updated to 1.4.
-
-* Fri Nov 12 2004 Martin Blom <martin@blom.org>
-- Updated to 1.3.
-
-* Thu Jul 27 2003 Martin Blom <martin@blom.org>
-- Initial rpm.
+systems: traditional AmigaOS, AmigaOS 4, native Amithlon, AROS and
+MorphOS.

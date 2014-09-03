@@ -32,7 +32,7 @@ BEGIN {
 	print join ("\n			", @{$$sfd{'includes'}});
 	print "\n";
 	print "Type definitions:		";
-	if ($#{@{$sfd->{typedefs}}} != -1) {
+	if ($#{\@{$sfd->{typedefs}}} != -1) {
 	    print join ("\n			", @{$$sfd{'typedefs'}});
 	}
 	print "\n";

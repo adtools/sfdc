@@ -707,13 +707,30 @@ sub parse_proto ( $$$ ) {
     my $name;
     my $arguments;
     my $registers;
+    my $revstr;
 
-    if (!(($return,undef,undef,$name,$arguments,$registers) =
-	  ( $$prototype{'value'} =~
-	    /^((struct\s+)?(\w+\s*?)+\**)\s*(\w+)\s*\((.*)\)\s*\((.*)\).*/ ))) {
-	print STDERR "Unable to parse prototype on line $$prototype{'line'}.\n";
-	die;
+    # strip leading+trailing spaces first
+    $$prototype{'value'} =~ s/^\s+|\s+$//g;
+
+    # we are doing a reverse regexp match here to make the regular expression
+    # substantially easier as sfd prototypes can be better matched from the back to the front
+    # (e.g. always starts with '()')
+    $revstr = scalar reverse $$prototype{'value'};
+    if(!(($registers,$arguments,$name,$return) =
+    ( 
+      $revstr =~
+      /\)(.*)\(\s+\)(.*)\((\w+)\s+(.*)/
+    )))
+    {
+      print STDERR "Unable to parse prototype on line $$prototype{'line'}.\n";
+      die;
     }
+ 
+    # now reverse the output to get everything back to normal
+    $return = reverse($return);
+    $name = reverse($name);
+    $arguments = reverse($arguments);
+    $registers = reverse($registers);
 
     # Nuke whitespaces from the register specification
     $registers =~ s/\s//;
@@ -800,7 +817,7 @@ sub parse_proto ( $$$ ) {
     #     First vararg is required.
 
     if ($prototype->{type} eq 'varargs') {
-	if ($varargs_type =~
+	if (defined($varargs_type) && $varargs_type =~
 	    /^\s*(const|CONST)?\s*struct\s+TagItem\s*\*\s*$/ ) {
 	    $prototype->{subtype} = 'tagcall';
 
@@ -887,7 +904,7 @@ sub parse_proto ( $$$ ) {
 	    my $type2;
 	    
 	    ($type1, $name, $type2) =
-		( $arg =~ /^\s*(.*)\(\s*\*\s*(\w+)\s*\)\s*(\w*\(.*\))\s*/ );
+		( $arg =~ /^\s*(.*)\(\s*\*+\s*(\w+)\s*\)\s*(\w*\(.*\))\s*/ );
 	    $type = "$type1(*)$type2";
 	    $___name = "___$name";
 	    $___arg = "$type1(*___$name) $type2";
@@ -898,7 +915,7 @@ sub parse_proto ( $$$ ) {
 	    $___arg = "$type ___$name";
 	}
 	else {
-	    if ($prototype->{type} eq 'varargs') {
+	    if ($prototype->{type} eq 'varargs' && defined($varargs_type)) {
 		$type = $varargs_type;
 	    }
 	    else {

@@ -25,7 +25,7 @@ BEGIN {
 	print "Checking SFD for $$sfd{'libname'} ...";
 	$self->{CNT} = 0;
 
-	if ($#{@{$sfd->{typedefs}}} != -1) {
+	if ($#{\@{$sfd->{typedefs}}} != -1) {
 	    print "\nWarning: SFD uses nonstandard '==typedef' command.";
 	    ++$self->{WARNS};
 	}
