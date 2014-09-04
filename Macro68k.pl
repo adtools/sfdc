@@ -26,7 +26,8 @@ BEGIN {
 	    my $argtypes  = join(',', @{$$prototype{'argtypes'}});
 	    my $a4        = $regs =~ /a4/;
 	    my $a5        = $regs =~ /a5/;
-	    my $fp        = $argtypes =~ /\(\*\)/;
+	    my $fp        = $argtypes =~ /\(\*+\)/;
+      my $return    = $$prototype{'return'};
 
 	    if ($a4 && $a5 && !$quiet) {
 		print STDERR "$$prototype{'funcname'} uses both a4 and a5 " .
@@ -35,20 +36,31 @@ BEGIN {
 	    
 	    $self->{FUNCARGTYPE} = '';
 	    for my $argtype (@{$$prototype{'argtypes'}}) {
-		if ($argtype =~ /\(\*\)/) {
+		if ($argtype =~ /\(\*+\)/) {
 		    $self->{FUNCARGTYPE} = $argtype;
 		    last;
 		}
 	    }
-	
-	    printf "	LP%d%s%s%s%s%s(0x%x, ", $$prototype{'numargs'},
+
+      $self->{FUNCRETTYPE} = '';
+      if($return =~ /\(\*+\)/)
+      {
+        $self->{FUNCRETTYPE} = $return;
+      }
+	    
+	    printf "	LP%d%s%s%s%s%s%s(0x%x, ", $$prototype{'numargs'},
 	    $prototype->{nr} ? "NR" : "",
 	    $prototype->{nb} ? "NB" : "",
 	    $a4 ? "A4" : "", $a5 ? "A5" : "",
 	    $self->{FUNCARGTYPE} ne '' ? "FP" : "",
+      $self->{FUNCRETTYPE} ne '' ? "FR" : "",
 	    $$prototype{'bias'};
 
-	    if (!$prototype->{nr}) {
+      if ($self->{FUNCRETTYPE})
+      {
+        print "__fpr, "; 
+      }
+	    elsif (!$prototype->{nr}) {
 		print "$$prototype{'return'}, ";
 	    }
 
@@ -74,7 +86,7 @@ BEGIN {
 		$argreg = 'd7';
 	    }
 	    
-	    if ($argtype =~ /\(\*\)/) {
+	    if ($argtype =~ /\(\*+\)/) {
 		print ", __fpt, $argname, $argreg";
 	    }
 	    else {
@@ -100,10 +112,19 @@ BEGIN {
 	    if ($self->{FUNCARGTYPE} ne '') {
 		my $fa = $self->{FUNCARGTYPE};
 
-		$fa =~ s/\(\*\)/(*__fpt)/;
+		$fa =~ s/\((\*+)\)/($1__fpt)/;
 		
 		print ", $fa";
 	    }
+
+      if ($self->{FUNCRETTYPE} ne '')
+      {
+        my $fr = $self->{FUNCRETTYPE};
+
+        $fr =~ s/\((\*+)\)/($1__fpr)/;
+
+        print ", $fr";
+      }
 	    
 	    print ")\n";
 	}
