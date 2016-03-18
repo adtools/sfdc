@@ -1673,8 +1673,8 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-VERSION=1.5
-DATE=2014-09-03
+VERSION=1.6
+DATE=2016-03-18
 
 
 

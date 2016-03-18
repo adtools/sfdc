@@ -707,7 +707,8 @@ sub parse_proto ( $$$ ) {
     my $name;
     my $arguments;
     my $registers;
-    my $revstr;
+    my $str;
+    my @array;
 
     # strip leading+trailing spaces first
     $$prototype{'value'} =~ s/^\s+|\s+$//g;
@@ -715,22 +716,19 @@ sub parse_proto ( $$$ ) {
     # we are doing a reverse regexp match here to make the regular expression
     # substantially easier as sfd prototypes can be better matched from the back to the front
     # (e.g. always starts with '()')
-    $revstr = scalar reverse $$prototype{'value'};
-    if(!(($registers,$arguments,$name,$return) =
-    ( 
-      $revstr =~
-      /\)(.*)\(\s+\)(.*)\((\w+)\s+(.*)/
-    )))
-    {
-      print STDERR "Unable to parse prototype on line $$prototype{'line'}.\n";
-      die;
-    }
- 
-    # now reverse the output to get everything back to normal
-    $return = reverse($return);
-    $name = reverse($name);
-    $arguments = reverse($arguments);
-    $registers = reverse($registers);
+    $str = $$prototype{'value'};
+    @array = (reverse $str) =~ / \)( (?: [^()]* | (?0) )* )\( /xg;
+
+    $registers = reverse $array[0];
+    $registers =~ s/^\s+|\s+$//g;   # trim whitspaces
+    $arguments = reverse $array[1];
+    $arguments =~ s/^\s+|\s+$//g;   # trim whitspaces
+
+    $name = substr($str, 0, index($str, "(" . $arguments . ")"));
+    $name =~ s/^\s+|\s+$//g; # trim whitspaces
+    $return = substr($name, 0, rindex($name, " "));
+    $name = substr($name, rindex($name, " "));
+    $name =~ s/^\s+|\s+$//g; # trim whitspaces
 
     # Nuke whitespaces from the register specification
     $registers =~ s/\s//;
