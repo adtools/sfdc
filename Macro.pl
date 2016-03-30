@@ -183,6 +183,12 @@ BEGIN {
 	my $argnum    = $params{'argnum'};
 	my $sfd       = $self->{SFD};
 
+	if ($$classes{'target'} eq 'morphos') {
+    if($argtype eq "va_list") {
+      $argtype = "long *";
+    }
+  }
+
 	if ($$prototype{'type'} eq 'varargs') {
 	    if ($prototype->{subtype} eq 'tagcall' ||
 		$prototype->{subtype} eq 'methodcall') {

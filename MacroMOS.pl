@@ -23,7 +23,16 @@ BEGIN {
 	print "#ifndef _PPCINLINE_$$sfd{'BASENAME'}_H\n";
 	print "#define _PPCINLINE_$$sfd{'BASENAME'}_H\n";
 	print "\n";
-	
+	print "#ifndef _SFDC_VARARG_DEFINED\n";
+	print "#define _SFDC_VARARG_DEFINED\n";
+	print "#ifdef __HAVE_IPTR_ATTR__\n";
+	print "typedef APTR _sfdc_vararg __attribute__((iptr));\n";
+	print "#else\n";
+	print "typedef ULONG _sfdc_vararg;\n";
+	print "#endif /* __HAVE_IPTR_ATTR__ */\n";
+	print "#endif /* _SFDC_VARARG_DEFINED */\n";
+	print "\n";
+ 
 	print "#ifndef __PPCINLINE_MACROS_H\n";
 	print "#include <ppcinline/macros.h>\n";
 	print "#endif /* !__PPCINLINE_MACROS_H */\n";
@@ -94,6 +103,47 @@ BEGIN {
 	    $self->SUPER::function_start (@_);
 	}
     }
+
+    sub function_arg {
+	my $self      = shift;
+	my %params    = @_;
+	my $prototype = $params{'prototype'};
+
+	if ($$prototype{'type'} eq 'function') {
+	    my $argtype   = $params{'argtype'};
+	    my $argname   = $params{'argname'};
+	    my $argreg    = $params{'argreg'};
+      my $fpidx     = 0;
+      my $fpfound   = 0;
+	    
+	    if ($argreg eq 'a4' || $argreg eq 'a5') {
+		$argreg = 'd7';
+	    }
+	    
+      for my $atype (@{$self->{FUNCARGTYPE}}) {
+        $fpidx++;
+        if ($atype eq $argtype) {
+          printf ", __fpt%s, %s, %s",
+            scalar @{$self->{FUNCARGTYPE}} > 1 ? $fpidx : "",
+            $argname, $argreg;
+          $fpfound = 1;
+          last;
+		    }
+      }
+
+	    if($fpfound eq 0) {
+        if($argtype eq "va_list") {
+          print ", long *, $argname, $argreg";
+        } else {
+          print ", $argtype, $argname, $argreg";
+        }
+	    }
+	}
+        else {
+	    $self->SUPER::function_arg (@_);
+	}
+    }
+
 
     sub function_end {
 	my $self      = shift;
