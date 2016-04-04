@@ -33,32 +33,32 @@ eval {
 
 if ($@) {
     eval '
-	# Minimal fall-back ...
+      # Minimal fall-back ...
 
-	sub pod2usage {
-	    my @params = @_;
-	    
-	    my $verbose = 0;
-	    my $exitval = 0;
-	    my $message = "";
-	    my $output = \*STDERR;
+      sub pod2usage {
+          my @params = @_;
+          
+          my $verbose = 0;
+          my $exitval = 0;
+          my $message = "";
+          my $output = \*STDERR;
 
-	    while (@params) {
-		for (shift @params) {
-		    /^-verbose$/ && do { $verbose = shift @params};
-		    /^-exitval$/ && do { $exitval = shift @params};
-		    /^-message$/ && do { $message = shift @params};
-		    /^-output$/  && do { $output  = shift @params};
-		}
-	    }
-	
-	    print $output "$message\n" if $message;
-	    print $output "\n";
-	    print $output "Perl module Pod::Usage is missing.\n";
-	    print $output "Please refer to the sfdc documentation for usage, ".
-		"or install Pod::Usage.\n";
-	    exit $exitval;
-	}
+          while (@params) {
+            for (shift @params) {
+                /^-verbose$/ && do { $verbose = shift @params};
+                /^-exitval$/ && do { $exitval = shift @params};
+                /^-message$/ && do { $message = shift @params};
+                /^-output$/  && do { $output  = shift @params};
+            }
+          }
+      
+          print $output "$message\n" if $message;
+          print $output "\n";
+          print $output "Perl module Pod::Usage is missing.\n";
+          print $output "Please refer to the sfdc documentation for usage, ".
+            "or install Pod::Usage.\n";
+          exit $exitval;
+      }
     ';
 }
     
@@ -110,60 +110,60 @@ my @bf  =
  ];
 
 my %targets = (
-	      'generic' =>
+            'generic' =>
                { target    => 'generic',
-		 vectors   => { 'library' => @lf, 'device' => @df, 'boopsi' => @bf },
-		 macros    => 'Macro',
-		 stubs     => 'Stub',
-		 gatestubs => 'Gate',
-		 interface => 'Interface'
-	       },
+             vectors   => { 'library' => @lf, 'device' => @df, 'boopsi' => @bf },
+             macros    => 'Macro',
+             stubs     => 'Stub',
+             gatestubs => 'Gate',
+             interface => 'Interface'
+             },
     
-	      '(\w)+(-.*)?-aros' =>
-	       { target    => 'aros',
-		 vectors   => { 'library' => @lf, 'device' => @df, 'boopsi' => @bf },
-		 macros    => 'MacroAROS',
-		 stubs     => 'StubAROS',
-		 gatestubs => 'GateAROS',
-		 interface => 'Interface'
-	       },
-	       
-	      'i.86be(-pc)?-amithlon' =>
-	       { target    => 'amithlon',
-		 vectors   => { 'library' => @lf, 'device' => @df, 'boopsi' => @bf },
-		 macros    => 'MacroLP',
-		 stubs     => 'StubAmithlon',
-		 gatestubs => 'GateAmithlon',
-		 interface => 'Interface'
-	       },
-	       
-	      'm68k(-unknown)?-amigaos' =>
-	       { target    => 'amigaos',
-		 vectors   => { 'library' => @lf, 'device' => @df, 'boopsi' => @bf },
-		 macros    => 'Macro68k',
-		 stubs     => 'Stub68k',
-		 gatestubs => 'Gate68k',
-		 interface => 'Interface'
-	       },
-	       
-	      'p(ower)?pc(-unknown)?-amigaos' =>
-	       { target    => 'amigaos4',
-		 vectors   => { 'library' => @lf, 'device' => @df, 'boopsi' => @bf },
-		 macros    => 'MacroAOS4',
-		 stubs     => 'StubAOS4',
-		 gatestubs => 'GateAOS4',
-		 interface => 'InterfaceAOS4'
-	       },
+            '(\w)+(-.*)?-aros' =>
+             { target    => 'aros',
+             vectors   => { 'library' => @lf, 'device' => @df, 'boopsi' => @bf },
+             macros    => 'MacroAROS',
+             stubs     => 'StubAROS',
+             gatestubs => 'GateAROS',
+             interface => 'Interface'
+             },
+             
+            'i.86be(-pc)?-amithlon' =>
+             { target    => 'amithlon',
+             vectors   => { 'library' => @lf, 'device' => @df, 'boopsi' => @bf },
+             macros    => 'MacroLP',
+             stubs     => 'StubAmithlon',
+             gatestubs => 'GateAmithlon',
+             interface => 'Interface'
+             },
+             
+            'm68k(-unknown)?-amigaos' =>
+             { target    => 'amigaos',
+             vectors   => { 'library' => @lf, 'device' => @df, 'boopsi' => @bf },
+             macros    => 'Macro68k',
+             stubs     => 'Stub68k',
+             gatestubs => 'Gate68k',
+             interface => 'Interface'
+             },
+             
+            'p(ower)?pc(-unknown)?-amigaos' =>
+             { target    => 'amigaos4',
+             vectors   => { 'library' => @lf, 'device' => @df, 'boopsi' => @bf },
+             macros    => 'MacroAOS4',
+             stubs     => 'StubAOS4',
+             gatestubs => 'GateAOS4',
+             interface => 'InterfaceAOS4'
+             },
     
-	      'p(ower)?pc(-unknown)?-morphos' =>
-	       { target    => 'morphos',
-		 vectors   => { 'library' => @lf, 'device' => @df, 'boopsi' => @bf },
-		 macros    => 'MacroMOS',
-		 stubs     => 'StubMOS',
-		 gatestubs => 'GateMOS',
-		 interface => 'Interface'
-	       }
-	      );
+            'p(ower)?pc(-unknown)?-morphos' =>
+             { target    => 'morphos',
+             vectors   => { 'library' => @lf, 'device' => @df, 'boopsi' => @bf },
+             macros    => 'MacroMOS',
+             stubs     => 'StubMOS',
+             gatestubs => 'GateMOS',
+             interface => 'Interface'
+             }
+            );
 
 my $classes;
 
@@ -190,70 +190,70 @@ GetOptions ('addvectors=s' => \$addvectors,
             'help|h'       => \$help,
             'libarg=s'     => \$libarg,
             'libprefix=s'  => \$libprefix,
-	    'man'          => \$man,
-	    'mode=s'       => \$mode,
-	    'output|o=s'   => \$output,
-	    'quiet|q'      => \$quiet,
-	    'target=s'     => \$target,
-	    'version|v'    => \$version) or exit 10;
+          'man'          => \$man,
+          'mode=s'       => \$mode,
+          'output|o=s'   => \$output,
+          'quiet|q'      => \$quiet,
+          'target=s'     => \$target,
+          'version|v'    => \$version) or exit 10;
 
 if ($version) {
     print STDERR "sfdc SFDC_VERSION (SFDC_DATE)\n";
     print STDERR "Copyright (C) 2003-2005 Martin Blom <martin\@blom.org>\n";
     print STDERR "This is free software; " .
-	"see the source for copying conditions.\n";
+      "see the source for copying conditions.\n";
     exit 0;
 }
 
 if ($help) {
     pod2usage (-verbose => 1,
-	       -exitval => 0,
-	       -output => \*STDOUT);
+             -exitval => 0,
+             -output => \*STDOUT);
 }
 
 if ($man) {
     pod2usage (-verbose => 3,
-	       -exitval => 0);
+             -exitval => 0);
     exit 0;
 }
 
 if ($#ARGV < 0) {
     pod2usage (-message => "No SFD file specified.",
-	       -verbose => 0,
-	       -exitval => 10);
+             -verbose => 0,
+             -exitval => 10);
 }
 
 $mode = lc $mode;
 
 if (!($mode =~ /^(autoopen|clib|dump|fd|functable|libproto|lvo|interface|macros|proto|pragmas|stubs|gateproto|gatestubs|verify)$/)) {
     pod2usage (-message => "Unknown mode specified. Use --help for a list.",
-	       -verbose => 0,
-	       -exitval => 10);
+             -verbose => 0,
+             -exitval => 10);
 }
 
 if ($libarg !~ /^(first|last|none)$/) {
     pod2usage (-message => "Unknown libarg specified. Use --help for a list.",
-	       -verbose => 0,
-	       -exitval => 10);
+             -verbose => 0,
+             -exitval => 10);
 }
 
 if ($addvectors !~ /^(none|library|device|boopsi)$/) {
     pod2usage (-message => "Unknown addvectors value. Use --help for a list.",
-	       -verbose => 0,
-	       -exitval => 10);
+             -verbose => 0,
+             -exitval => 10);
 }
 
 check_target: {
     foreach my $target_regex (keys %targets) {
-	if ($target =~ /^$target_regex$/) {
-	    $classes = $targets{$target_regex};
-	    last check_target;
-	}
+      if ($target =~ /^$target_regex$/) {
+          $classes = $targets{$target_regex};
+          last check_target;
+      }
     }
 
     pod2usage (-message => "Unknown target specified. Use --help for a list.",
-	       -verbose => 0,
-	       -exitval => 10);
+             -verbose => 0,
+             -exitval => 10);
 }
 
 # Save old STDOUT
@@ -267,119 +267,119 @@ for my $i ( 0 .. $#ARGV ) {
     my $obj;
 
     for ($mode) {
-	/^autoopen$/ && do {
-	    $obj = AutoOpen->new( sfd => $sfd );
-	    last;
-	};
+      /^autoopen$/ && do {
+          $obj = AutoOpen->new( sfd => $sfd );
+          last;
+      };
 
-	/^clib$/ && do {
-	    $obj = CLib->new( sfd => $sfd );
-	    last;
-	};
+      /^clib$/ && do {
+          $obj = CLib->new( sfd => $sfd );
+          last;
+      };
 
-	/^dump$/ && do {
-	    $obj = Dump->new( sfd => $sfd );
-	    last;
-	};
+      /^dump$/ && do {
+          $obj = Dump->new( sfd => $sfd );
+          last;
+      };
     
-	/^fd$/ && do {
-	    $obj = FD->new( sfd => $sfd );
-	    last;
-	};
+      /^fd$/ && do {
+          $obj = FD->new( sfd => $sfd );
+          last;
+      };
     
-	/^functable$/ && do {
-	    $obj = FuncTable->new( sfd => $sfd );
-	    last;
-	};
+      /^functable$/ && do {
+          $obj = FuncTable->new( sfd => $sfd );
+          last;
+      };
 
-	/^libproto$/ && do {
-	    $obj = Gate->new( sfd => $sfd,
-			      proto => 0,
-			      libproto => 1 );
-	    last;
-	};
+      /^libproto$/ && do {
+          $obj = Gate->new( sfd => $sfd,
+                        proto => 0,
+                        libproto => 1 );
+          last;
+      };
 
-	/^lvo$/ && do {
-	    $obj = LVO->new( sfd => $sfd );
-	    last;
-	};
+      /^lvo$/ && do {
+          $obj = LVO->new( sfd => $sfd );
+          last;
+      };
 
-	/^interface$/ && do {
-	    $obj = $$classes{'interface'}->new( sfd => $sfd );
-	    last;
-	};
-	
-	/^macros$/ && do {
-	    $obj = $$classes{'macros'}->new( sfd => $sfd );
+      /^interface$/ && do {
+          $obj = $$classes{'interface'}->new( sfd => $sfd );
+          last;
+      };
+      
+      /^macros$/ && do {
+          $obj = $$classes{'macros'}->new( sfd => $sfd );
 
-	    # By tradition, the functions in the macro files are sorted
-#	    @{$$sfd{'prototypes'}} = sort {
-#		$$a{'funcname'} cmp $$b{'funcname'}
-#	    } @{$$sfd{'prototypes'}};
-	    last;
-	};
+          # By tradition, the functions in the macro files are sorted
+#         @{$$sfd{'prototypes'}} = sort {
+#           $$a{'funcname'} cmp $$b{'funcname'}
+#         } @{$$sfd{'prototypes'}};
+          last;
+      };
 
-	/^proto$/ && do {
-	    $obj = Proto->new( sfd => $sfd );
-	    last;
-	};
+      /^proto$/ && do {
+          $obj = Proto->new( sfd => $sfd );
+          last;
+      };
 
-	/^pragmas$/ && do {
-	    $obj = SASPragmas->new( sfd => $sfd );
-	    last;
-	};
+      /^pragmas$/ && do {
+          $obj = SASPragmas->new( sfd => $sfd );
+          last;
+      };
 
-	/^verify$/ && do {
-	    $obj = Verify->new( sfd => $sfd );
-	    last;
-	};
+      /^verify$/ && do {
+          $obj = Verify->new( sfd => $sfd );
+          last;
+      };
 
-	/^stubs$/ && do {
-	    $obj = $$classes{'stubs'}->new( sfd => $sfd );
+      /^stubs$/ && do {
+          $obj = $$classes{'stubs'}->new( sfd => $sfd );
 
-	    # By tradition, the functions in the stub files are sorted
-#	    @{$$sfd{'prototypes'}} = sort {
-#		$$a{'funcname'} cmp $$b{'funcname'}
-#	    } @{$$sfd{'prototypes'}};
-	    last;
-	};
+          # By tradition, the functions in the stub files are sorted
+#         @{$$sfd{'prototypes'}} = sort {
+#           $$a{'funcname'} cmp $$b{'funcname'}
+#         } @{$$sfd{'prototypes'}};
+          last;
+      };
 
-	/^gateproto$/ && do {
-	    $obj = $$classes{'gatestubs'}->new( sfd => $sfd,
-						proto => 1,
-						libproto => 0);
-	    last;
-	};
-	
-	/^gatestubs$/ && do {
-	    $obj = $$classes{'gatestubs'}->new( sfd => $sfd,
-						proto => 0,
-						libproto => 0);
-						
-	    last;
-	};
+      /^gateproto$/ && do {
+          $obj = $$classes{'gatestubs'}->new( sfd => $sfd,
+                                    proto => 1,
+                                    libproto => 0);
+          last;
+      };
+      
+      /^gatestubs$/ && do {
+          $obj = $$classes{'gatestubs'}->new( sfd => $sfd,
+                                    proto => 0,
+                                    libproto => 0);
+                                    
+          last;
+      };
 
-	die "Unknown mode specified: " . $mode;
+      die "Unknown mode specified: " . $mode;
     }
 
 
     for my $j ( 0 .. $num + 1) {
-	my $prototype = $$sfd{'prototypes'}[$j];
-	my $funcname  = $$prototype{'funcname'};
-	
-	if (!defined ($funcname) || will_close_output ($sfd, $funcname) != 0) {
-	    $obj->footer ();
-	}
+      my $prototype = $$sfd{'prototypes'}[$j];
+      my $funcname  = $$prototype{'funcname'};
+      
+      if (!defined ($funcname) || will_close_output ($sfd, $funcname) != 0) {
+          $obj->footer ();
+      }
 
-	if ($j > $num) {
-	    last;
-	}
-	
-	if (open_output ($sfd, $funcname) != 0) {
-	    $obj->header ();
-	}
+      if ($j > $num) {
+          last;
+      }
+      
+      if (open_output ($sfd, $funcname) != 0) {
+          $obj->header ();
+      }
 
-	$obj->function (prototype => $prototype);
+      $obj->function (prototype => $prototype);
     }
 
     close_output ();
@@ -418,17 +418,17 @@ sub parse_sfd ( $ ) {
     my $comment   = '';
 
     my $result = {
-	copyright  => 'Copyright © 2001 Amiga, Inc.',
-	id         => '',
-	libname    => '',
-	base       => '',
-	basetype   => 'struct Library *',
-#	includes   => (),
-#	typedefs   => (),
-#	prototypes => (),
-	basename   => '',
-	BASENAME   => '',
-	Basename   => ''
+      copyright  => 'Copyright © 2001 Amiga, Inc.',
+      id         => '',
+      libname    => '',
+      base       => '',
+      basetype   => 'struct Library *',
+#     includes   => (),
+#     typedefs   => (),
+#     prototypes => (),
+      basename   => '',
+      BASENAME   => '',
+      Basename   => ''
     };
 
     # Why do I need this????
@@ -437,43 +437,43 @@ sub parse_sfd ( $ ) {
     $$result{'typedefs'}   = ();
 
     if ($addvectors ne 'none') {
-	push @{$$result{'includes'}}, '<dos/dos.h>';
-	push @{$$result{'includes'}}, '<exec/execbase.h>';
+      push @{$$result{'includes'}}, '<dos/dos.h>';
+      push @{$$result{'includes'}}, '<exec/execbase.h>';
 
-	if ($addvectors eq 'device') {
-	    push @{$$result{'includes'}}, '<exec/io.h>';
-	}
-	elsif ($addvectors eq 'boopsi') {
-	    push @{$$result{'includes'}}, '<intuition/classes.h>';
-	}
-	
-	for my $i ( 0 .. $#{$classes->{vectors}->{$addvectors}} ) {
-	    push @{$$result{'prototypes'}}, {
-		type    => 'function',
-		subtype => $addvectors,
-		value   => $classes->{vectors}->{$addvectors}[$i],
-		line    => 0,
-		private => 0,
-		bias    => 6 * $i,
-		version => 0,
-		comment => ''
-		};
-	}
+      if ($addvectors eq 'device') {
+          push @{$$result{'includes'}}, '<exec/io.h>';
+      }
+      elsif ($addvectors eq 'boopsi') {
+          push @{$$result{'includes'}}, '<intuition/classes.h>';
+      }
+      
+      for my $i ( 0 .. $#{$classes->{vectors}->{$addvectors}} ) {
+          push @{$$result{'prototypes'}}, {
+            type    => 'function',
+            subtype => $addvectors,
+            value   => $classes->{vectors}->{$addvectors}[$i],
+            line    => 0,
+            private => 0,
+            bias    => 6 * $i,
+            version => 0,
+            comment => ''
+            };
+      }
     }
-	
+      
     
     my $proto_line = '';
     my %proto;
 
     if (!$quiet) {
-	( my $fn = $file ) =~ s,.*[/\\](.*),$1,;
-	print STDERR "Processing SFD file '$fn'.\n";
-	STDERR->flush();
+      ( my $fn = $file ) =~ s,.*[/\\](.*),$1,;
+      print STDERR "Processing SFD file '$fn'.\n";
+      STDERR->flush();
     }
     
     unless (open (SFD, "<" . $file)) {
-	print STDERR "Unable to open file '$file'.\n";
-	die;
+      print STDERR "Unable to open file '$file'.\n";
+      die;
     };
 
     my $line_no = 0;
@@ -481,153 +481,153 @@ sub parse_sfd ( $ ) {
   LINE:
     while (my $line = <SFD>) {
 
-	++$line_no;
-	
-	for ($line) {
-	    /==copyright\s/ && do {
-		( $$result{'copyright'} = $_ ) =~ s/==copyright\s+(.*)\s*/$1/;
-		last;
-	    };
+      ++$line_no;
+      
+      for ($line) {
+          /==copyright\s/ && do {
+            ( $$result{'copyright'} = $_ ) =~ s/==copyright\s+(.*)\s*/$1/;
+            last;
+          };
 
-	    /==id\s+/ && do {
-		( $$result{'id'} = $_ ) =~ s/==id\s+(.*)\s*/$1/;
-		last;
-	    };
+          /==id\s+/ && do {
+            ( $$result{'id'} = $_ ) =~ s/==id\s+(.*)\s*/$1/;
+            last;
+          };
 
-	    /==libname\s+/ && do {
-		( $$result{'libname'} = $_ ) =~ s/==libname\s+(.*)\s*/$1/;
-		last;
-	    };
+          /==libname\s+/ && do {
+            ( $$result{'libname'} = $_ ) =~ s/==libname\s+(.*)\s*/$1/;
+            last;
+          };
 
-	    /==base\s+/ && do {
-		( $$result{'base'} = $_ ) =~ s/==base\s+_?(.*)\s*/$1/;
-		last;
-	    };
+          /==base\s+/ && do {
+            ( $$result{'base'} = $_ ) =~ s/==base\s+_?(.*)\s*/$1/;
+            last;
+          };
 
-	    /==basetype\s+/ && do {
-		( $$result{'basetype'} = $_ ) =~ s/==basetype\s+(.*)\s*/$1/;
-		last;
-	    };
+          /==basetype\s+/ && do {
+            ( $$result{'basetype'} = $_ ) =~ s/==basetype\s+(.*)\s*/$1/;
+            last;
+          };
 
-	    /==include\s+/ && do {
-		( my $inc = $_ ) =~ s/==include\s+(.*)\s*/$1/;
+          /==include\s+/ && do {
+            ( my $inc = $_ ) =~ s/==include\s+(.*)\s*/$1/;
 
-		push @{$$result{'includes'}}, $inc;
-		last;
-	    };
+            push @{$$result{'includes'}}, $inc;
+            last;
+          };
 
-	    /==typedef\s+/ && do {
-		( my $td = $_ ) =~ s/==typedef\s+(.*)\s*$/$1/;
+          /==typedef\s+/ && do {
+            ( my $td = $_ ) =~ s/==typedef\s+(.*)\s*$/$1/;
 
-		push @{$$result{'typedefs'}}, $td;
-		last;
-	    };
-	    
-	    /==bias\s+/ && do {
-		( $bias = $_ ) =~ s/==bias\s+(.*)\s*/$1/;
-		last;
-	    };
+            push @{$$result{'typedefs'}}, $td;
+            last;
+          };
+          
+          /==bias\s+/ && do {
+            ( $bias = $_ ) =~ s/==bias\s+(.*)\s*/$1/;
+            last;
+          };
 
-	    /==reserve\s+/ && do {
-		( my $reserve = $_ ) =~ s/==reserve\s+(.*)\s*/$1/;
+          /==reserve\s+/ && do {
+            ( my $reserve = $_ ) =~ s/==reserve\s+(.*)\s*/$1/;
 
-		$bias += 6 * $reserve;
-		last;
-	    };
+            $bias += 6 * $reserve;
+            last;
+          };
 
-	    /==alias\s*$/ && do {
-		# Move back again
-		$type = $last_type;
-		$bias -= 6;
-		last;
-	    };
+          /==alias\s*$/ && do {
+            # Move back again
+            $type = $last_type;
+            $bias -= 6;
+            last;
+          };
 
-	    /==varargs\s*$/ && do {
-		$type = 'varargs';
-		# Move back again
-		$bias -= 6;
-		last;
-	    };
-	    
-	    /==private\s*$/ && do {
-		$private = 1;
-		last;
-	    };
+          /==varargs\s*$/ && do {
+            $type = 'varargs';
+            # Move back again
+            $bias -= 6;
+            last;
+          };
+          
+          /==private\s*$/ && do {
+            $private = 1;
+            last;
+          };
 
-	    /==public\s*$/ && do {
-		$private = 0;
-		last;
-	    };
+          /==public\s*$/ && do {
+            $private = 0;
+            last;
+          };
 
-	    /==version\s+/ && do {
-		( $version = $_ ) =~ s/==version\s+(.*)\s*/$1/;
-		last;
-	    };
-	    
-	    /==end\s*$/ && do {
-		last LINE;
-	    };
-	    
-	    /^\*/ && do {
-		( my $cmt = $_ ) =~ s/^\*(.*)\s*/$1/;
+          /==version\s+/ && do {
+            ( $version = $_ ) =~ s/==version\s+(.*)\s*/$1/;
+            last;
+          };
+          
+          /==end\s*$/ && do {
+            last LINE;
+          };
+          
+          /^\*/ && do {
+            ( my $cmt = $_ ) =~ s/^\*(.*)\s*/$1/;
 
-		$comment .= ($comment eq '' ? "" : "\n" ) . $cmt;
-		last;
-	    };
-	    
-	    /^[^=*\n]/ && do {
-		# Strip whitespaces and append
-		$line =~ s/\s*(.*)\s*/$1/;
-		$proto_line .= $line . " ";
-		last;
-	    };
+            $comment .= ($comment eq '' ? "" : "\n" ) . $cmt;
+            last;
+          };
+          
+          /^[^=*\n]/ && do {
+            # Strip whitespaces and append
+            $line =~ s/\s*(.*)\s*/$1/;
+            $proto_line .= $line . " ";
+            last;
+          };
 
-	    /^\s*$/ && do {
-		# Skip blank lines
-		last;
-	    };
+          /^\s*$/ && do {
+            # Skip blank lines
+            last;
+          };
 
-	    # If we get here, we found a line we don't understand
-	    print STDERR "Unable to parse line $line_no in SFD file" .
-		" '$file'. The line looks like this:\n" . $line ;
-	    die;
-	};
-	
-	if ( $proto_line =~
-	     /.*[A-Za-z0-9_]+\s*\(.*\).*\(((base|sysv|autoreg|[\saAdD][0-7]-?),?)*\)\s*$/
-	     ) {
+          # If we get here, we found a line we don't understand
+          print STDERR "Unable to parse line $line_no in SFD file" .
+            " '$file'. The line looks like this:\n" . $line ;
+          die;
+      };
+      
+      if ( $proto_line =~
+           /.*[A-Za-z0-9_]+\s*\(.*\).*\(((base|sysv|autoreg|[\saAdD][0-7]-?),?)*\)\s*$/
+           ) {
 
-	    if ($proto_line =~ /.*\(.*[0-7]-.*\)\s*$/) {
-		if ($$classes{'target'} ne 'amigaos') {
-		    print STDERR "Warning: Multiregister functions are m68k only.\n";
-		}
-		$proto_line =~ s/([da][0-7])-[da][0-7]/$1/g;
-	    }
-#	    else {
-		push @{$$result{'prototypes'}}, {
-		    type    => $type,
-		    subtype => '',
-		    value   => $proto_line,
-		    line    => $line_no,
-		    private => $private,
-		    bias    => $bias,
-		    version => $version,
-		    comment => $comment
-		    };
+          if ($proto_line =~ /.*\(.*[0-7]-.*\)\s*$/) {
+            if ($$classes{'target'} ne 'amigaos') {
+                print STDERR "Warning: Multiregister functions are m68k only.\n";
+            }
+            $proto_line =~ s/([da][0-7])-[da][0-7]/$1/g;
+          }
+#         else {
+            push @{$$result{'prototypes'}}, {
+                type    => $type,
+                subtype => '',
+                value   => $proto_line,
+                line    => $line_no,
+                private => $private,
+                bias    => $bias,
+                version => $version,
+                comment => $comment
+                };
 
-		$comment    = '';
-#	    }
+            $comment    = '';
+#         }
 
-	    $last_type  = $type;
-	    $type       = 'function';
-	    $proto_line = '';
-	    $bias += 6;
-	}
+          $last_type  = $type;
+          $type       = 'function';
+          $proto_line = '';
+          $bias += 6;
+      }
     }
 
     if( $proto_line ne '' ) {
-	# If $proto_line isn't empty, we couldn't parse it
-	die "Unhanled proto '" . $proto_line . "'\n";
+      # If $proto_line isn't empty, we couldn't parse it
+      die "Unhanled proto '" . $proto_line . "'\n";
     }
 
     close (SFD);
@@ -638,27 +638,27 @@ sub parse_sfd ( $ ) {
     my $varargs_type   = '';
 
     for my $i ( 0 .. $#{$$result{'prototypes'}} ) {
-	my $prototype = $$result{'prototypes'}[$i];
+      my $prototype = $$result{'prototypes'}[$i];
 
-	if ($$prototype{'type'} eq 'varargs') {
-	    $$prototype{'real_funcname'}  = $real_funcname;
-	    $$prototype{'real_prototype'} = $real_prototype;
-	}
-	else {
-	    $$prototype{'real_funcname'}  = '';
-	    $$prototype{'real_prototype'} = '';
-	}
-	
-	parse_proto ($result, $prototype, $varargs_type);
+      if ($$prototype{'type'} eq 'varargs') {
+          $$prototype{'real_funcname'}  = $real_funcname;
+          $$prototype{'real_prototype'} = $real_prototype;
+      }
+      else {
+          $$prototype{'real_funcname'}  = '';
+          $$prototype{'real_prototype'} = '';
+      }
+      
+      parse_proto ($result, $prototype, $varargs_type);
 
-	if ($$prototype{'type'} eq 'function') {
-	    $varargs_type = $$prototype{'argtypes'}[$#{$$prototype{'argtypes'}}];
-	}
+      if ($$prototype{'type'} eq 'function') {
+          $varargs_type = $$prototype{'argtypes'}[$#{$$prototype{'argtypes'}}];
+      }
 
-	if ($$prototype{'type'} eq 'function') {
-	    $real_funcname  = $$prototype{'funcname'};
-	    $real_prototype = $prototype;
-	}
+      if ($$prototype{'type'} eq 'function') {
+          $real_funcname  = $$prototype{'funcname'};
+          $real_prototype = $prototype;
+      }
     };
 
     # Create some other variables
@@ -666,24 +666,24 @@ sub parse_sfd ( $ ) {
     ( $$result{'basename'} = $$result{'libname'} ) =~ s/(.*)\.\w+/$1/;
 
     if ($$result{'basename'} eq '') {
-	( $$result{'basename'} = $file ) =~ s:.*/(\w+?)_lib\.sfd:$1: or do {
-	    print STDERR "Unable to find or guess base name.\n";
-	    print STDERR "Please add \"==libname module_name\" to SFD file.\n";
-	    die;
-	};
+      ( $$result{'basename'} = $file ) =~ s:.*/(\w+?)_lib\.sfd:$1: or do {
+          print STDERR "Unable to find or guess base name.\n";
+          print STDERR "Please add \"==libname module_name\" to SFD file.\n";
+          die;
+      };
 
-	# Fake the CIA libname
-	if ($$result{'basename'} eq "cia") {
-	    $$result{'libname'} = "ciaX.resource";
-	}
-	else {
-	    $$result{'libname'} = $$result{'basename'} . ".library";
-	}
+      # Fake the CIA libname
+      if ($$result{'basename'} eq "cia") {
+          $$result{'libname'} = "ciaX.resource";
+      }
+      else {
+          $$result{'libname'} = $$result{'basename'} . ".library";
+      }
     }
 
     # Fake the Workbench basename
     if ($$result{'basename'} eq "workbench") {
-	$$result{'basename'} = "wb";
+      $$result{'basename'} = "wb";
     }
 
     $$result{'basename'} =~ s/-/_/g;
@@ -747,7 +747,7 @@ sub parse_proto ( $$$ ) {
     @{$$prototype{'argtypes'}}    = ();
 
     if ($arguments =~ /^(void|VOID)$/) {
-	$arguments = "";
+      $arguments = "";
     }
 
     my @args = split(/,/,$arguments);
@@ -756,52 +756,52 @@ sub parse_proto ( $$$ ) {
 
     my $par_cnt = 0;
     foreach my $arg (@args) {
-	# Strip whitespaces
-	$arg =~ s/\s*(.*?)\s*/$1/;
+      # Strip whitespaces
+      $arg =~ s/\s*(.*?)\s*/$1/;
 
-	if ($par_cnt != 0) {
-	    my $old_arg = pop @{$$prototype{'args'}};
-	    
-	    push @{$$prototype{'args'}}, $old_arg . "," . $arg;
-	}
-	else {
-	    push @{$$prototype{'args'}}, $arg;
-	}
+      if ($par_cnt != 0) {
+          my $old_arg = pop @{$$prototype{'args'}};
+          
+          push @{$$prototype{'args'}}, $old_arg . "," . $arg;
+      }
+      else {
+          push @{$$prototype{'args'}}, $arg;
+      }
 
-	# Count parentheses (a function pointer arguments is processed
-	# when $par_cnt is 0).
-	$par_cnt += ( $arg =~ tr/\(/\(/ );
-	$par_cnt -= ( $arg =~ tr/\)/\)/ );
+      # Count parentheses (a function pointer arguments is processed
+      # when $par_cnt is 0).
+      $par_cnt += ( $arg =~ tr/\(/\(/ );
+      $par_cnt -= ( $arg =~ tr/\)/\)/ );
     }
 
     $$prototype{'numargs'} = $#{$$prototype{'args'}} + 1;
 
     if ($registers =~ /sysv/) {
-	$prototype->{type} = 'cfunction';
-	$prototype->{nb}   = 1;
+      $prototype->{type} = 'cfunction';
+      $prototype->{nb}   = 1;
     }
     elsif ($registers =~ /autoreg/) {
-	my $a_cnt = 0;
-	my $d_cnt = 0;
-	foreach my $arg (@{$$prototype{'args'}}) {
-	    if ($arg =~ /\*/) {
-		push @{$$prototype{'regs'}}, "a$a_cnt";
-		$a_cnt++;
-	    }
-	    else {
-		push @{$$prototype{'regs'}}, "d$d_cnt";
-		$d_cnt++;
-	    }
-	}
-	
-	$prototype->{numregs} = $#{$$prototype{'regs'}} + 1;
-	$prototype->{nb}      = $sfd->{base} eq '';
+      my $a_cnt = 0;
+      my $d_cnt = 0;
+      foreach my $arg (@{$$prototype{'args'}}) {
+          if ($arg =~ /\*/) {
+            push @{$$prototype{'regs'}}, "a$a_cnt";
+            $a_cnt++;
+          }
+          else {
+            push @{$$prototype{'regs'}}, "d$d_cnt";
+            $d_cnt++;
+          }
+      }
+      
+      $prototype->{numregs} = $#{$$prototype{'regs'}} + 1;
+      $prototype->{nb}      = $sfd->{base} eq '';
     }
     else {
-	# Split regs and make them lower case
-	@{$$prototype{'regs'}} = split(/,/,lc $registers);
-	$prototype->{numregs} = $#{$$prototype{'regs'}} + 1;
-	$prototype->{nb}      = $sfd->{base} eq '' || $registers =~ /a6/;
+      # Split regs and make them lower case
+      @{$$prototype{'regs'}} = split(/,/,lc $registers);
+      $prototype->{numregs} = $#{$$prototype{'regs'}} + 1;
+      $prototype->{nb}      = $sfd->{base} eq '' || $registers =~ /a6/;
     }
 
     $$prototype{'nr'} = $$prototype{'return'} =~ /^(VOID|void)$/;
@@ -815,50 +815,50 @@ sub parse_proto ( $$$ ) {
     #     First vararg is required.
 
     if ($prototype->{type} eq 'varargs') {
-	if (defined($varargs_type) && $varargs_type =~
-	    /^\s*(const|CONST)?\s*struct\s+TagItem\s*\*\s*$/ ) {
-	    $prototype->{subtype} = 'tagcall';
+      if (defined($varargs_type) && $varargs_type =~
+          /^\s*(const|CONST)?\s*struct\s+TagItem\s*\*\s*$/ ) {
+          $prototype->{subtype} = 'tagcall';
 
-	    if ($prototype->{numargs} == $prototype->{numregs}) {
-		if (!$quiet) {
-		    print STDERR "Warning: Adding missing Tag argument to " .
-			$prototype->{funcname} . "()\n";
-		}
-		
-		my $last = pop @{$prototype->{args}};
-		push @{$prototype->{args}}, "Tag _tag1" ;
-		push @{$prototype->{args}}, $last;
+          if ($prototype->{numargs} == $prototype->{numregs}) {
+            if (!$quiet) {
+                print STDERR "Warning: Adding missing Tag argument to " .
+                  $prototype->{funcname} . "()\n";
+            }
+            
+            my $last = pop @{$prototype->{args}};
+            push @{$prototype->{args}}, "Tag _tag1" ;
+            push @{$prototype->{args}}, $last;
 
-		++$prototype->{numargs};
-	    }
-	}
-	else {
-	    if ($prototype->{numargs} == $prototype->{numregs}) {
-		$prototype->{subtype} = 'printfcall';
-	    }
-	    elsif ($prototype->{numargs} == $prototype->{numregs} + 1) {
-		$prototype->{subtype} = 'methodcall';
-	    }
-	}
+            ++$prototype->{numargs};
+          }
+      }
+      else {
+          if ($prototype->{numargs} == $prototype->{numregs}) {
+            $prototype->{subtype} = 'printfcall';
+          }
+          elsif ($prototype->{numargs} == $prototype->{numregs} + 1) {
+            $prototype->{subtype} = 'methodcall';
+          }
+      }
     }
     elsif ($prototype->{type} eq 'cfunction') {
-	foreach (split(/,/,lc $registers)) {
-	    /^sysv$/ && do {
-		$prototype->{subtype} = 'sysv';
-		next;
-	    };
+      foreach (split(/,/,lc $registers)) {
+          /^sysv$/ && do {
+            $prototype->{subtype} = 'sysv';
+            next;
+          };
 
-	    /^base$/ && do {
-		if ($sfd->{base} eq '') {
-		    printf STDERR "$prototype->{funcname}: " .
-			"Library has no base!\n";
-		    die;
-		}
-		
-		$prototype->{nb} = 0;
-		next;
-	    };
-	}
+          /^base$/ && do {
+            if ($sfd->{base} eq '') {
+                printf STDERR "$prototype->{funcname}: " .
+                  "Library has no base!\n";
+                die;
+            }
+            
+            $prototype->{nb} = 0;
+            next;
+          };
+      }
     }
 
 
@@ -868,74 +868,74 @@ sub parse_proto ( $$$ ) {
     # Tagcalls always have one extra, á la "Tag, ...".
 
     if (($prototype->{type} eq 'varargs' &&
-	 $prototype->{subtype} eq 'tagcall' &&
-	 $prototype->{numargs} != $prototype->{numregs} + 1 ) ||
+       $prototype->{subtype} eq 'tagcall' &&
+       $prototype->{numargs} != $prototype->{numregs} + 1 ) ||
 
-	($prototype->{type} eq 'varargs' &&
-	 $prototype->{subtype} eq 'printfcall' &&
-	 $prototype->{numargs} != $prototype->{numregs}) ||
+      ($prototype->{type} eq 'varargs' &&
+       $prototype->{subtype} eq 'printfcall' &&
+       $prototype->{numargs} != $prototype->{numregs}) ||
 
-	($prototype->{type} eq 'varargs' &&
-	 $prototype->{subtype} eq 'methodcall' &&
-	 $prototype->{numargs} != $prototype->{numregs} + 1) ||
+      ($prototype->{type} eq 'varargs' &&
+       $prototype->{subtype} eq 'methodcall' &&
+       $prototype->{numargs} != $prototype->{numregs} + 1) ||
 
-	($prototype->{type} eq 'function' &&
-	 $prototype->{numargs} != $prototype->{numregs})) {
-	
-	print STDERR "Failed to parse arguments/registers on SFD " .
-	    "line $$prototype{'line'}:\n$$prototype{'value'}\n";
-	print STDERR "The number of arguments doesn't match " .
-	    "the number of registers (+1 if tagcall).\n";
-	die;
+      ($prototype->{type} eq 'function' &&
+       $prototype->{numargs} != $prototype->{numregs})) {
+      
+      print STDERR "Failed to parse arguments/registers on SFD " .
+          "line $$prototype{'line'}:\n$$prototype{'value'}\n";
+      print STDERR "The number of arguments doesn't match " .
+          "the number of registers (+1 if tagcall).\n";
+      die;
     }
 
     my $type = '';
     
     foreach my $arg (@{$$prototype{'args'}}) {
-	my $name    = '';
-	my $___name = '';
-	my $___arg  = '';
+      my $name    = '';
+      my $___name = '';
+      my $___arg  = '';
 
-	# MorhOS includes use __CLIB_PROTOTYPE for some reason ...
-	if ($arg =~ /.*\(.*?\)\s*(__CLIB_PROTOTYPE)?\(.*\)/) {
-	    my $type1;
-	    my $type2;
-	    
-	    ($type1, $name, $type2) =
-		( $arg =~ /^\s*(.*)\(\s*\*+\s*(\w+)\s*\)\s*(\w*\(.*\))\s*/ );
-	    $type = "$type1(*)$type2";
-	    $___name = "___$name";
-	    $___arg = "$type1(*___$name) $type2";
-	}
-	elsif ($arg !~ /^\.\.\.$/) {
-	    ($type, $name) = ( $arg =~ /^\s*(.*?[\s*]*?)\s*(\w+)\s*$/ );
-	    $___name = "___$name";
-	    $___arg = "$type ___$name";
-	}
-	else {
-	    if ($prototype->{type} eq 'varargs' && defined($varargs_type)) {
-		$type = $varargs_type;
-	    }
-	    else {
-		# Unknown type
-#		$type = "void*";
-		$type = "...";
-	    }
-	    $name = '...';
-	    $___name = '...';
-	    $___arg = '...';
-	}
+      # MorhOS includes use __CLIB_PROTOTYPE for some reason ...
+      if ($arg =~ /.*\(.*?\)\s*(__CLIB_PROTOTYPE)?\(.*\)/) {
+          my $type1;
+          my $type2;
+          
+          ($type1, $name, $type2) =
+            ( $arg =~ /^\s*(.*)\(\s*\*+\s*(\w+)\s*\)\s*(\w*\(.*\))\s*/ );
+          $type = "$type1(*)$type2";
+          $___name = "___$name";
+          $___arg = "$type1(*___$name) $type2";
+      }
+      elsif ($arg !~ /^\.\.\.$/) {
+          ($type, $name) = ( $arg =~ /^\s*(.*?[\s*]*?)\s*(\w+)\s*$/ );
+          $___name = "___$name";
+          $___arg = "$type ___$name";
+      }
+      else {
+          if ($prototype->{type} eq 'varargs' && defined($varargs_type)) {
+            $type = $varargs_type;
+          }
+          else {
+            # Unknown type
+#           $type = "void*";
+            $type = "...";
+          }
+          $name = '...';
+          $___name = '...';
+          $___arg = '...';
+      }
 
-	if ($type eq '' || $name eq '' ) {
-	    print STDERR "Type or name missing from '$arg'.\n";
-	    die;
-	}
+      if ($type eq '' || $name eq '' ) {
+          print STDERR "Type or name missing from '$arg'.\n";
+          die;
+      }
 
-	push @{$$prototype{'___args'}}, $___arg;
-	push @{$$prototype{'argnames'}}, $name;
-	push @{$$prototype{'___argnames'}}, $___name;
+      push @{$$prototype{'___args'}}, $___arg;
+      push @{$$prototype{'argnames'}}, $name;
+      push @{$$prototype{'___argnames'}}, $___name;
 
-	push @{$$prototype{'argtypes'}}, $type;
+      push @{$$prototype{'argtypes'}}, $type;
     }
 }
 
@@ -948,67 +948,67 @@ sub BEGIN {
 ### close_output: Close the output file if necessary  #########################
 
     sub close_output () {
-	close (STDOUT);
-	$old_output = '';
+      close (STDOUT);
+      $old_output = '';
     }
     
 
 ### check_output: Check if the file will be reopended by open_output ##########
 
     sub will_close_output ( $$ ) {
-	my $sfd      = shift;
-	my $function = shift;
+      my $sfd      = shift;
+      my $function = shift;
 
-	my $new_output = $output;
+      my $new_output = $output;
 
-	$new_output =~ s/%f/$function/;
-	$new_output =~ s/%b/$$sfd{'base'}/;
-	$new_output =~ s/%l/$$sfd{'libname'}/;
-	$new_output =~ s/%n/$$sfd{'basename'}/;
+      $new_output =~ s/%f/$function/;
+      $new_output =~ s/%b/$$sfd{'base'}/;
+      $new_output =~ s/%l/$$sfd{'libname'}/;
+      $new_output =~ s/%n/$$sfd{'basename'}/;
 
-	if( $old_output ne '' &&
-	    $new_output ne $old_output ) {
-	    return 1;
-	}
-	else {
-	    return 0;
-	}
+      if( $old_output ne '' &&
+          $new_output ne $old_output ) {
+          return 1;
+      }
+      else {
+          return 0;
+      }
     }
     
 ### open_output: (Re)open the output file if necessary  #######################
 
     sub open_output ( $$ ) {
-	my $sfd      = shift;
-	my $function = shift;
+      my $sfd      = shift;
+      my $function = shift;
 
-	my $new_output = $output;
+      my $new_output = $output;
 
-	$new_output =~ s/%f/$function/;
-	$new_output =~ s/%b/$$sfd{'base'}/;
-	$new_output =~ s/%l/$$sfd{'libname'}/;
-	$new_output =~ s/%n/$$sfd{'basename'}/;
+      $new_output =~ s/%f/$function/;
+      $new_output =~ s/%b/$$sfd{'base'}/;
+      $new_output =~ s/%l/$$sfd{'libname'}/;
+      $new_output =~ s/%n/$$sfd{'basename'}/;
 
-	if( $new_output ne $old_output ) {
+      if( $new_output ne $old_output ) {
 
-	    close_output ();
+          close_output ();
 
-	    if ($new_output eq '-') {
-		open (STDOUT, ">&OLDOUT") or die;
-	    }
-	    else {
-		open (STDOUT, ">" . $new_output) or die;
+          if ($new_output eq '-') {
+            open (STDOUT, ">&OLDOUT") or die;
+          }
+          else {
+            open (STDOUT, ">" . $new_output) or die;
 
-		if (!$quiet) {
-		    print STDERR "Writing to '$new_output'\n";
-		}
-	    }
-	    
-	    $old_output = $new_output;
+            if (!$quiet) {
+                print STDERR "Writing to '$new_output'\n";
+            }
+          }
+          
+          $old_output = $new_output;
 
-	    return 1;
-	}
-	else {
-	    return 0;
-	}
+          return 1;
+      }
+      else {
+          return 0;
+      }
     }
 }
