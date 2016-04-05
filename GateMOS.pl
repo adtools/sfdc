@@ -19,7 +19,24 @@ BEGIN {
       
       $self->SUPER::header (@_);
 
-      print "#include <emul/emulregs.h>\n";
+      if ($sdi eq 0) {
+        print "#include <emul/emulregs.h>\n";
+      }
+      else {
+        print "#include <SDI_lib.h>\n\n";
+        print "LIBSTUB(UNIMPLEMENTED, int)";
+
+        if ($self->{PROTO}) {
+          print ";";
+        }
+        else {
+          print "\n";
+          print "{\n";
+          print "  // nothing\n";
+          print "  return 0;\n";
+          print "}\n";
+        }
+      }
       print "\n";
     }
 
@@ -29,15 +46,30 @@ BEGIN {
       my $prototype = $params{'prototype'};
       my $sfd       = $self->{SFD};
 
-      print "$prototype->{return}\n";
-      print "$gateprefix$prototype->{funcname}(void)";
-      
-      if ($self->{PROTO}) {
-          print ";\n";
+      if ($sdi eq 0) {
+        print "$prototype->{return}\n";
+        print "$gateprefix$prototype->{funcname}(void)";
+        
       }
       else {
-          print "\n";
-          print "{\n";
+        if ($prototype->{return} =~ /\(\*+\)/) {
+          print "LIBSTUB($prototype->{funcname}, void *)";
+        }
+        else {
+          print "LIBSTUB($prototype->{funcname}, $prototype->{return})";
+        }
+      }
+
+      if ($self->{PROTO}) {
+        print ";";
+      }
+      else {
+        print "\n";
+        print "{\n";
+        if ($sdi ne 0) {
+          print "  __BASE_OR_IFACE = (__BASE_OR_IFACE_TYPE)REG_A6;\n";
+          print "  return CALL_LFUNC($prototype->{funcname}";
+        }
       }
     }
 
@@ -53,8 +85,13 @@ BEGIN {
           my $argnum    = $params{'argnum'};
           my $sfd       = $self->{SFD};
 
-          print "  $prototype->{___args}[$argnum] = ($argtype) REG_" .
-            (uc $argreg) . ";\n";
+          if ($sdi eq 0) {
+            print "  $prototype->{___args}[$argnum] = ($argtype) REG_" .
+              (uc $argreg) . ";\n";
+          }
+          else {
+            print ", ($argtype)REG_" . (uc $argreg);
+          }
       }
     }
     
@@ -66,23 +103,25 @@ BEGIN {
           my $prototype = $params{'prototype'};
           my $sfd       = $self->{SFD};
 
-          if ($libarg ne 'none' && !$prototype->{nb}) {
-            print "  $sfd->{basetype} _base = ($sfd->{basetype}) ".
-                "REG_A6;\n";
-          }
-          
-          print "  return $libprefix$prototype->{funcname}(";
+          if ($sdi eq 0) {
+            if ($libarg ne 'none' && !$prototype->{nb}) {
+              print "  $sfd->{basetype} _base = ($sfd->{basetype}) ".
+                  "REG_A6;\n";
+            }
+            
+            print "  return $libprefix$prototype->{funcname}(";
 
-          if ($libarg eq 'first' && !$prototype->{nb}) {
-            print "_base";
-            print $prototype->{numargs} > 0 ? ", " : "";
-          }
+            if ($libarg eq 'first' && !$prototype->{nb}) {
+              print "_base";
+              print $prototype->{numargs} > 0 ? ", " : "";
+            }
 
-          print join (', ', @{$prototype->{___argnames}});
+            print join (', ', @{$prototype->{___argnames}});
       
-          if ($libarg eq 'last' && !$prototype->{nb}) {
-            print $prototype->{numargs} > 0 ? ", " : "";
-            print "_base";
+            if ($libarg eq 'last' && !$prototype->{nb}) {
+              print $prototype->{numargs} > 0 ? ", " : "";
+              print "_base";
+            }
           }
       
           print ");\n";

@@ -177,6 +177,7 @@ my $gateprefix = '';
 my $help       = '0';
 my $libarg     = 'none';
 my $libprefix  = '';
+my $sdi        = '0';
 my $addvectors = 'none';
 my $man        = '0';
 my $mode       = 'verify';
@@ -190,6 +191,7 @@ GetOptions ('addvectors=s' => \$addvectors,
             'help|h'       => \$help,
             'libarg=s'     => \$libarg,
             'libprefix=s'  => \$libprefix,
+            'sdi'          => \$sdi,
           'man'          => \$man,
           'mode=s'       => \$mode,
           'output|o=s'   => \$output,
@@ -199,7 +201,7 @@ GetOptions ('addvectors=s' => \$addvectors,
 
 if ($version) {
     print STDERR "sfdc SFDC_VERSION (SFDC_DATE)\n";
-    print STDERR "Copyright (C) 2003-2005 Martin Blom <martin\@blom.org>\n";
+    print STDERR "Copyright (C) 2003-2016 Martin Blom <martin\@blom.org>\n";
     print STDERR "This is free software; " .
       "see the source for copying conditions.\n";
     exit 0;

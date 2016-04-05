@@ -1,8 +1,8 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT(sfdc, 1.8, martin@blom.org)
+AC_INIT(sfdc, 1.9, martin@blom.org)
 
-VERSION=1.8
-DATE=2016-03-29
+VERSION=1.9
+DATE=2016-04-05
 AC_SUBST(VERSION)
 AC_SUBST(DATE)
 

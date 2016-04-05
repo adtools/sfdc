@@ -177,6 +177,7 @@ my $gateprefix = '';
 my $help       = '0';
 my $libarg     = 'none';
 my $libprefix  = '';
+my $sdi        = '0';
 my $addvectors = 'none';
 my $man        = '0';
 my $mode       = 'verify';
@@ -190,6 +191,7 @@ GetOptions ('addvectors=s' => \$addvectors,
             'help|h'       => \$help,
             'libarg=s'     => \$libarg,
             'libprefix=s'  => \$libprefix,
+            'sdi'          => \$sdi,
           'man'          => \$man,
           'mode=s'       => \$mode,
           'output|o=s'   => \$output,
@@ -198,8 +200,8 @@ GetOptions ('addvectors=s' => \$addvectors,
           'version|v'    => \$version) or exit 10;
 
 if ($version) {
-    print STDERR "sfdc 1.8 (2016-03-29)\n";
-    print STDERR "Copyright (C) 2003-2005 Martin Blom <martin\@blom.org>\n";
+    print STDERR "sfdc 1.9 (2016-04-05)\n";
+    print STDERR "Copyright (C) 2003-2016 Martin Blom <martin\@blom.org>\n";
     print STDERR "This is free software; " .
       "see the source for copying conditions.\n";
     exit 0;
@@ -1184,7 +1186,7 @@ BEGIN {
       my $sfd  = $self->{SFD};
 
       print "* \"$$sfd{'libname'}\"\n";
-      print "* Automatically generated FD (sfdc 1.8)! Do not edit!\n";
+      print "* Automatically generated FD (sfdc 1.9)! Do not edit!\n";
       print "##base _$$sfd{'base'}\n";
       $self->{BIAS}    = -1;
       $self->{PRIVATE} = -1;
@@ -1494,7 +1496,7 @@ BEGIN {
       $v =~ s/^\$[I]d: .*? ([0-9.]+).*/$1/;
       $d =~ s,^\$[I]d: .*? [0-9.]+ (\d{4})/(\d{2})/(\d{2}).*,($3.$2.$1),;
 
-      print "/* Automatically generated header (sfdc 1.8)! Do not edit! */\n";
+      print "/* Automatically generated header (sfdc 1.9)! Do not edit! */\n";
       print "#ifndef PRAGMAS_$sfd->{BASENAME}_PRAGMAS_H\n";
       print "#define PRAGMAS_$sfd->{BASENAME}_PRAGMAS_H\n";
       print "\n";
@@ -1733,7 +1735,7 @@ BEGIN {
       my $self = shift;
       my $sfd  = $self->{SFD};
 
-      print "/* Automatically generated header (sfdc 1.8)! Do not edit! */\n";
+      print "/* Automatically generated header (sfdc 1.9)! Do not edit! */\n";
       print "\n";
       if ($sfd->{base} ne '') {
           print "#ifdef __cplusplus\n";
@@ -1903,7 +1905,7 @@ BEGIN {
       my $BaseName  = $$sfd{'BaseName'};
       my $basetype  = $$sfd{'basetype'};
 
-      print "/* Automatically generated header (sfdc 1.8)! Do not edit! */\n";
+      print "/* Automatically generated header (sfdc 1.9)! Do not edit! */\n";
       print "\n";
       print "#ifndef PROTO_${BASENAME}_H\n";
       print "#define PROTO_${BASENAME}_H\n";
@@ -1980,7 +1982,7 @@ BEGIN {
       my $self = shift;
       my $sfd  = $self->{SFD};
 
-      print "/* Automatically generated header (sfdc 1.8)! Do not edit! */\n";
+      print "/* Automatically generated header (sfdc 1.9)! Do not edit! */\n";
       print "\n";
       print "#ifndef _INLINE_$$sfd{'BASENAME'}_H\n";
       print "#define _INLINE_$$sfd{'BASENAME'}_H\n";
@@ -2224,7 +2226,7 @@ BEGIN {
       $v =~ s/^\$[I]d: .*? ([0-9.]+).*/$1/;
       $d =~ s,^\$[I]d: .*? [0-9.]+ (\d{4})/(\d{2})/(\d{2}).*,($3.$2.$1),;
             
-      print "/* Automatically generated header (sfdc 1.8)! Do not edit! */\n";
+      print "/* Automatically generated header (sfdc 1.9)! Do not edit! */\n";
       print "\n";
       print "#ifndef CLIB_$$sfd{'BASENAME'}_PROTOS_H\n";
       print "#define CLIB_$$sfd{'BASENAME'}_PROTOS_H\n";
@@ -2339,7 +2341,7 @@ BEGIN {
       my $self = shift;
       my $sfd  = $self->{SFD};
 
-      print "/* Automatically generated function table (sfdc 1.8)! Do not edit! */\n";
+      print "/* Automatically generated function table (sfdc 1.9)! Do not edit! */\n";
       print "\n";
       print "#ifndef $sfd->{'BASENAME'}_INTERFACE_DEF_H\n";
       print "#define $sfd->{'BASENAME'}_INTERFACE_DEF_H\n";
@@ -2456,7 +2458,7 @@ BEGIN {
       my $self = shift;
       my $sfd  = $self->{SFD};
 
-      print "/* Automatically generated header (sfdc 1.8)! Do not edit! */\n";
+      print "/* Automatically generated header (sfdc 1.9)! Do not edit! */\n";
       print "\n";
       print "#ifndef _PPCINLINE_$$sfd{'BASENAME'}_H\n";
       print "#define _PPCINLINE_$$sfd{'BASENAME'}_H\n";
@@ -2645,7 +2647,7 @@ BEGIN {
 
       $self->{NEWFILE} = 1;
 
-      print "/* Automatically generated stubs (sfdc 1.8)! Do not edit! */\n";
+      print "/* Automatically generated stubs (sfdc 1.9)! Do not edit! */\n";
       print "\n";
 
       foreach my $inc (@{$$sfd{'includes'}}) {
@@ -2930,19 +2932,19 @@ BEGIN {
       my $sfd  = $self->{SFD};
 
       if ($self->{PROTO}) {
-          print "/* Automatically generated header (sfdc 1.8)! Do not edit! */\n";
+          print "/* Automatically generated header (sfdc 1.9)! Do not edit! */\n";
           print "\n";
           print "#ifndef _GATEPROTO_$$sfd{'BASENAME'}_H\n";
           print "#define _GATEPROTO_$$sfd{'BASENAME'}_H\n";
       }
       elsif ($self->{LIBPROTO}) {
-          print "/* Automatically generated header (sfdc 1.8)! Do not edit! */\n";
+          print "/* Automatically generated header (sfdc 1.9)! Do not edit! */\n";
           print "\n";
           print "#ifndef _LIBPROTO_$$sfd{'BASENAME'}_H\n";
           print "#define _LIBPROTO_$$sfd{'BASENAME'}_H\n";
       }
       else {
-          print "/* Automatically generated gatestubs (sfdc 1.8)! Do not edit! */\n";
+          print "/* Automatically generated gatestubs (sfdc 1.9)! Do not edit! */\n";
       }
       print "\n";
 
@@ -3039,7 +3041,7 @@ BEGIN {
       my $prototype = $params{'prototype'};
       my $sfd      = $self->{SFD};
 
-      if (!$self->{PROTO}) {
+      if (!$self->{PROTO} and $sdi eq 0) {
           if ($prototype->{type} eq 'varargs') {
             print_libproto($sfd, $prototype->{real_prototype});
           }
@@ -3258,7 +3260,24 @@ BEGIN {
       
       $self->SUPER::header (@_);
 
-      print "#include <emul/emulregs.h>\n";
+      if ($sdi eq 0) {
+        print "#include <emul/emulregs.h>\n";
+      }
+      else {
+        print "#include <SDI_lib.h>\n\n";
+        print "LIBSTUB(UNIMPLEMENTED, int)";
+
+        if ($self->{PROTO}) {
+          print ";";
+        }
+        else {
+          print "\n";
+          print "{\n";
+          print "  // nothing\n";
+          print "  return 0;\n";
+          print "}\n";
+        }
+      }
       print "\n";
     }
 
@@ -3268,15 +3287,30 @@ BEGIN {
       my $prototype = $params{'prototype'};
       my $sfd       = $self->{SFD};
 
-      print "$prototype->{return}\n";
-      print "$gateprefix$prototype->{funcname}(void)";
-      
-      if ($self->{PROTO}) {
-          print ";\n";
+      if ($sdi eq 0) {
+        print "$prototype->{return}\n";
+        print "$gateprefix$prototype->{funcname}(void)";
+        
       }
       else {
-          print "\n";
-          print "{\n";
+        if ($prototype->{return} =~ /\(\*+\)/) {
+          print "LIBSTUB($prototype->{funcname}, void *)";
+        }
+        else {
+          print "LIBSTUB($prototype->{funcname}, $prototype->{return})";
+        }
+      }
+
+      if ($self->{PROTO}) {
+        print ";";
+      }
+      else {
+        print "\n";
+        print "{\n";
+        if ($sdi ne 0) {
+          print "  __BASE_OR_IFACE = (__BASE_OR_IFACE_TYPE)REG_A6;\n";
+          print "  return CALL_LFUNC($prototype->{funcname}";
+        }
       }
     }
 
@@ -3292,8 +3326,13 @@ BEGIN {
           my $argnum    = $params{'argnum'};
           my $sfd       = $self->{SFD};
 
-          print "  $prototype->{___args}[$argnum] = ($argtype) REG_" .
-            (uc $argreg) . ";\n";
+          if ($sdi eq 0) {
+            print "  $prototype->{___args}[$argnum] = ($argtype) REG_" .
+              (uc $argreg) . ";\n";
+          }
+          else {
+            print ", ($argtype)REG_" . (uc $argreg);
+          }
       }
     }
     
@@ -3305,23 +3344,25 @@ BEGIN {
           my $prototype = $params{'prototype'};
           my $sfd       = $self->{SFD};
 
-          if ($libarg ne 'none' && !$prototype->{nb}) {
-            print "  $sfd->{basetype} _base = ($sfd->{basetype}) ".
-                "REG_A6;\n";
-          }
-          
-          print "  return $libprefix$prototype->{funcname}(";
+          if ($sdi eq 0) {
+            if ($libarg ne 'none' && !$prototype->{nb}) {
+              print "  $sfd->{basetype} _base = ($sfd->{basetype}) ".
+                  "REG_A6;\n";
+            }
+            
+            print "  return $libprefix$prototype->{funcname}(";
 
-          if ($libarg eq 'first' && !$prototype->{nb}) {
-            print "_base";
-            print $prototype->{numargs} > 0 ? ", " : "";
-          }
+            if ($libarg eq 'first' && !$prototype->{nb}) {
+              print "_base";
+              print $prototype->{numargs} > 0 ? ", " : "";
+            }
 
-          print join (', ', @{$prototype->{___argnames}});
+            print join (', ', @{$prototype->{___argnames}});
       
-          if ($libarg eq 'last' && !$prototype->{nb}) {
-            print $prototype->{numargs} > 0 ? ", " : "";
-            print "_base";
+            if ($libarg eq 'last' && !$prototype->{nb}) {
+              print $prototype->{numargs} > 0 ? ", " : "";
+              print "_base";
+            }
           }
       
           print ");\n";
@@ -3758,7 +3799,7 @@ BEGIN {
       my $self = shift;
       my $sfd  = $self->{SFD};
 
-      print "/* Automatically generated function table (sfdc 1.8)! Do not edit! */\n";
+      print "/* Automatically generated function table (sfdc 1.9)! Do not edit! */\n";
       print "\n";
       print "#ifdef __SFDC_FUNCTABLE_M68K__\n";
       print "# define _sfdc_func(f) &m68k ## f\n";
@@ -4035,7 +4076,7 @@ BEGIN {
       my $self = shift;
       my $sfd  = $self->{SFD};
 
-      print "* Automatically generated header (sfdc 1.8)! Do not edit!\n";
+      print "* Automatically generated header (sfdc 1.9)! Do not edit!\n";
       print "     IFND  LVO_$sfd->{BASENAME}_LIB_I\n";
       print "LVO_$sfd->{BASENAME}_LIB_I   SET   1\n";
       print "\n";
@@ -4062,102 +4103,6 @@ BEGIN {
 
       print "\n";
       print "     ENDC  * LVO_$sfd->{BASENAME}_LIB_I\n";
-    }
-}
-
-### Class MacroLP: Create a LP-style macro file ###############################
-
-BEGIN {
-    package MacroLP;
-    use vars qw(@ISA);
-    @ISA = qw( Macro );
-
-    sub new {
-      my $proto  = shift;
-      my $class  = ref($proto) || $proto;
-      my $self   = $class->SUPER::new( @_ );
-      bless ($self, $class);
-      return $self;
-    }
-
-    sub header {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-
-      $self->SUPER::header (@_);
-      
-      print "#ifndef __INLINE_MACROS_H\n";
-      print "#include <inline/macros.h>\n";
-      print "#endif /* !__INLINE_MACROS_H */\n";
-      print "\n";
-
-      if ($$sfd{'base'} ne '') {
-          print "#ifndef $self->{BASE}\n";
-          print "#define $self->{BASE} $$sfd{'base'}\n";
-          print "#endif /* !$self->{BASE} */\n";
-          print "\n";
-      }
-    }
-    
-    sub function_start {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      if ($$prototype{'type'} eq 'function') {
-          printf "      LP%d%s%s(0x%x, ", $$prototype{'numargs'},
-          $prototype->{nr} ? "NR" : "",
-          $prototype->{nb} ? "NB" : "", $$prototype{'bias'};
-
-          if (!$prototype->{nr}) {
-            print "$$prototype{'return'}, ";
-          }
-
-          print "$$prototype{'funcname'}";
-      }
-      else {
-          $self->SUPER::function_start (@_);
-      }
-    }
-
-    sub function_arg {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $argtype   = $params{'argtype'};
-      my $argname   = $params{'argname'};
-      my $argreg    = $params{'argreg'};
-      my $argnum    = $params{'argnum'};
-      my $sfd       = $self->{SFD};
-
-      if ($$prototype{'type'} eq 'function') {
-          print ", $argtype, $argname, $argreg";
-      }
-      else {
-          $self->SUPER::function_arg (@_);
-      }
-    }
-    
-    sub function_end {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      
-      if ($$prototype{'type'} eq 'function') {
-
-          if (!$prototype->{nb}) {
-            print ",\\\n      , $self->{BASE})\n";
-          }
-          else {
-            print ")\n";
-          }
-      }
-      else {
-          $self->SUPER::function_end (@_);
-      }
     }
 }
 
@@ -4448,6 +4393,102 @@ BEGIN {
       print join (', ', @newargs);
       print ")";
       
+    }
+}
+
+### Class MacroLP: Create a LP-style macro file ###############################
+
+BEGIN {
+    package MacroLP;
+    use vars qw(@ISA);
+    @ISA = qw( Macro );
+
+    sub new {
+      my $proto  = shift;
+      my $class  = ref($proto) || $proto;
+      my $self   = $class->SUPER::new( @_ );
+      bless ($self, $class);
+      return $self;
+    }
+
+    sub header {
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      $self->SUPER::header (@_);
+      
+      print "#ifndef __INLINE_MACROS_H\n";
+      print "#include <inline/macros.h>\n";
+      print "#endif /* !__INLINE_MACROS_H */\n";
+      print "\n";
+
+      if ($$sfd{'base'} ne '') {
+          print "#ifndef $self->{BASE}\n";
+          print "#define $self->{BASE} $$sfd{'base'}\n";
+          print "#endif /* !$self->{BASE} */\n";
+          print "\n";
+      }
+    }
+    
+    sub function_start {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      if ($$prototype{'type'} eq 'function') {
+          printf "      LP%d%s%s(0x%x, ", $$prototype{'numargs'},
+          $prototype->{nr} ? "NR" : "",
+          $prototype->{nb} ? "NB" : "", $$prototype{'bias'};
+
+          if (!$prototype->{nr}) {
+            print "$$prototype{'return'}, ";
+          }
+
+          print "$$prototype{'funcname'}";
+      }
+      else {
+          $self->SUPER::function_start (@_);
+      }
+    }
+
+    sub function_arg {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $argtype   = $params{'argtype'};
+      my $argname   = $params{'argname'};
+      my $argreg    = $params{'argreg'};
+      my $argnum    = $params{'argnum'};
+      my $sfd       = $self->{SFD};
+
+      if ($$prototype{'type'} eq 'function') {
+          print ", $argtype, $argname, $argreg";
+      }
+      else {
+          $self->SUPER::function_arg (@_);
+      }
+    }
+    
+    sub function_end {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      
+      if ($$prototype{'type'} eq 'function') {
+
+          if (!$prototype->{nb}) {
+            print ",\\\n      , $self->{BASE})\n";
+          }
+          else {
+            print ")\n";
+          }
+      }
+      else {
+          $self->SUPER::function_end (@_);
+      }
     }
 }
 
@@ -5166,6 +5207,7 @@ sfdc [options] file1.sfd [file2.sfd ...]
     --help -h               Show full help message and exit
     --libarg=LOCATION       Where to pass the libbase
     --libprefix=PREFIX      Prefix for library functions
+    --sdi                   SDI header compatibility mode
     --man                   Show full manual page and exit
     --mode=MODE             What to do
     --output=FILE -o FILE   Where to store the output
@@ -5208,6 +5250,13 @@ B<none>, B<first> and B<last>. The default is B<none>.
 
 Sets a function name prefix for the local library functions when
 generating gatestubs or libproto files.
+
+
+=item B<--sdi>
+
+Turns on the SDI header compatibility mode. This will make sure
+that all header files (especially the gatestub and gateproto files
+are generated to be used in a SDI compatible environment.
 
 
 =item B<--man>

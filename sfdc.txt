@@ -10,6 +10,7 @@
         --help -h               Show full help message and exit
         --libarg=LOCATION       Where to pass the libbase
         --libprefix=PREFIX      Prefix for library functions
+        --sdi                   SDI header compatibility mode
         --man                   Show full manual page and exit
         --mode=MODE             What to do
         --output=FILE -o FILE   Where to store the output
@@ -38,6 +39,10 @@
     [1m--libprefix[0m
             Sets a function name prefix for the local library functions when
             generating gatestubs or libproto files.
+
+    [1m--sdi[0m   Turns on the SDI header compatibility mode. This will make sure
+            that all header files (especially the gatestub and gateproto
+            files are generated to be used in a SDI compatible environment.
 
     [1m--man[0m   Show the complete manual page and exit.
 

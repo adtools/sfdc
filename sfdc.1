@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "SFDC 1"
-.TH SFDC 1 "2016-04-04" "perl v5.20.2" "Perl Programmers Reference Guide"
+.TH SFDC 1 "2016-04-05" "perl v5.20.2" "Perl Programmers Reference Guide"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -144,13 +144,14 @@ sfdc \- Compile SFD files into someting useful
 .IX Header "SYNOPSIS"
 sfdc [options] file1.sfd [file2.sfd ...]
 .PP
-.Vb 12
+.Vb 10
 \&  Options:
 \&    \-\-addvectors=TYPE       Add default functions
 \&    \-\-gateprefix=PREFIX     Prefix for gatestub functions
 \&    \-\-help \-h               Show full help message and exit
 \&    \-\-libarg=LOCATION       Where to pass the libbase
 \&    \-\-libprefix=PREFIX      Prefix for library functions
+\&    \-\-sdi                   SDI header compatibility mode
 \&    \-\-man                   Show full manual page and exit
 \&    \-\-mode=MODE             What to do
 \&    \-\-output=FILE \-o FILE   Where to store the output
@@ -182,6 +183,11 @@ gatestubs or gateproto and libproto files. Possible values are
 .IX Item "--libprefix"
 Sets a function name prefix for the local library functions when
 generating gatestubs or libproto files.
+.IP "\fB\-\-sdi\fR" 8
+.IX Item "--sdi"
+Turns on the \s-1SDI\s0 header compatibility mode. This will make sure
+that all header files (especially the gatestub and gateproto files
+are generated to be used in a \s-1SDI\s0 compatible environment.
 .IP "\fB\-\-man\fR" 8
 .IX Item "--man"
 Show the complete manual page and exit.

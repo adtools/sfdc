@@ -130,7 +130,7 @@ BEGIN {
       my $prototype = $params{'prototype'};
       my $sfd      = $self->{SFD};
 
-      if (!$self->{PROTO}) {
+      if (!$self->{PROTO} and $sdi eq 0) {
           if ($prototype->{type} eq 'varargs') {
             print_libproto($sfd, $prototype->{real_prototype});
           }
