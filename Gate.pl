@@ -228,15 +228,34 @@ BEGIN {
       my $sfd       = shift;
       my $prototype = shift;
       
-      print "$prototype->{return}\n";
+      my $rettype_prefix = $prototype->{return};
+      my $rettype_postfix = "";
+      if ($prototype->{return} =~ /(.*\(\*+)(\).*)/) {
+        $rettype_prefix = $1;
+        $rettype_postfix = $2;
+      }
+
+      print "$rettype_prefix ";
       print "$libprefix$prototype->{funcname}(";
 
       if ($libarg eq 'first' && !$prototype->{nb}) {
           print "$sfd->{basetype} _base";
-          print $prototype->{numargs} > 0 ? ", " : "";
       }
 
-      print join (', ', @{$prototype->{___args}});
+      for my $i (0 .. $prototype->{numargs} - 1 ) {
+        my $argtype = $$prototype{'argtypes'}[$i];
+        my $argname = $$prototype{'___argnames'}[$i];
+        if($argtype eq "va_list") {
+          $argtype = "long *";
+        }
+        my $argdef = $argtype . " " . $argname;
+        if ($argtype =~ /\(\*+\)/) {
+          $argdef = $argtype;
+          $argdef =~ s/\(\*+\)/\(\*$argname\)/g;
+        }
+
+        print ", $argdef";
+      }
 
       if ($libarg eq 'last' && !$prototype->{nb}) {
           print $prototype->{numargs} > 0 ? ", " : "";
@@ -247,6 +266,6 @@ BEGIN {
           print "void";
       }
       
-      print ")";
+      print ")" . $rettype_postfix;
     }
 }

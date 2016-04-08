@@ -46,9 +46,16 @@ BEGIN {
       my $prototype = $params{'prototype'};
       my $sfd       = $self->{SFD};
 
+      my $rettype_prefix = $prototype->{return};
+      my $rettype_postfix = "";
+      if ($prototype->{return} =~ /(.*\(\*+)(\).*)/) {
+        $rettype_prefix = $1;
+        $rettype_postfix = $2;
+      }
+
       if ($sdi eq 0) {
-        print "$prototype->{return}\n";
-        print "$gateprefix$prototype->{funcname}(void)";
+        print "$rettype_prefix ";
+        print "$gateprefix$prototype->{funcname}(void)$rettype_postfix";
         
       }
       else {
@@ -85,9 +92,18 @@ BEGIN {
           my $argnum    = $params{'argnum'};
           my $sfd       = $self->{SFD};
 
+          if($argtype eq "va_list") {
+            $argtype = "long *";
+          }
+
+          my $argdef = $argtype . " " . $argname;
+          if ($argtype =~ /\(\*+\)/) {
+            $argdef = $argtype;
+            $argdef =~ s/\(\*+\)/\(\*$argname\)/g;
+          }
+
           if ($sdi eq 0) {
-            print "  $prototype->{___args}[$argnum] = ($argtype) REG_" .
-              (uc $argreg) . ";\n";
+            print "  $argdef = ($argtype)REG_" . (uc $argreg) . ";\n";
           }
           else {
             print ", ($argtype)REG_" . (uc $argreg);
@@ -105,8 +121,7 @@ BEGIN {
 
           if ($sdi eq 0) {
             if ($libarg ne 'none' && !$prototype->{nb}) {
-              print "  $sfd->{basetype} _base = ($sfd->{basetype}) ".
-                  "REG_A6;\n";
+              print "  $sfd->{basetype} _base = ($sfd->{basetype})"."REG_A6;\n";
             }
             
             print "  return $libprefix$prototype->{funcname}(";
