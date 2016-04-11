@@ -20,22 +20,23 @@ BEGIN {
       $self->SUPER::header (@_);
 
       if ($sdi eq 0) {
-        print "#include <emul/emulregs.h>\n";
+        print "#include <emul/emulregs.h>\n\n";
+        print "int $gateprefix" . "UNIMPLEMENTED(void)";
       }
       else {
         print "#include <SDI_lib.h>\n\n";
         print "LIBSTUB(UNIMPLEMENTED, int)";
+      }
 
-        if ($self->{PROTO}) {
-          print ";";
-        }
-        else {
-          print "\n";
-          print "{\n";
-          print "  // nothing\n";
-          print "  return 0;\n";
-          print "}\n";
-        }
+      if ($self->{PROTO}) {
+        print ";";
+      }
+      else {
+        print "\n";
+        print "{\n";
+        print "  // nothing\n";
+        print "  return 0;\n";
+        print "}\n";
       }
       print "\n";
     }
