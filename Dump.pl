@@ -19,7 +19,7 @@ BEGIN {
       my $sfd  = $self->{SFD};
 
       print "SFD information\n";
-      print "¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯\n";
+      print "---------------\n";
       print "Copyright:       $$sfd{'copyright'}\n";
       print "RCS ID:                $$sfd{'id'}\n";
       print "Module name:           $$sfd{'libname'}\n";

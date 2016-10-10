@@ -32,7 +32,7 @@ distclean:	clean
 	$(RM) config.status Makefile
 
 install:	all
-	$(INSTALL) --directory $(bindir) $(mandir)/man1
+	$(INSTALL) -d $(bindir) $(mandir)/man1
 	$(INSTALL_PROGRAM) $(EXECUTABLE) $(bindir)
 	$(INSTALL_DATA) $(MAN) $(mandir)/man1
 

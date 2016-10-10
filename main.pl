@@ -420,7 +420,7 @@ sub parse_sfd ( $ ) {
     my $comment   = '';
 
     my $result = {
-      copyright  => 'Copyright © 2001 Amiga, Inc.',
+      copyright   => 'Copyright (c) 2001 Amiga, Inc.',
       id         => '',
       libname    => '',
       base       => '',
@@ -866,8 +866,8 @@ sub parse_proto ( $$$ ) {
 
 
     # Make sure we have the same number of arguments as registers, or,
-    # if this is a varargs function, possible one extra, á la "MethodID, ...".
-    # Tagcalls always have one extra, á la "Tag, ...".
+    # if this is a varargs function, possible one extra, a la "MethodID, ...".
+    # Tagcalls always have one extra, a la "Tag, ...".
 
     if (($prototype->{type} eq 'varargs' &&
        $prototype->{subtype} eq 'tagcall' &&
