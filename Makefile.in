@@ -32,9 +32,9 @@ distclean:	clean
 	$(RM) config.status Makefile
 
 install:	all
-	$(INSTALL) -d $(bindir) $(mandir)/man1
-	$(INSTALL_PROGRAM) $(EXECUTABLE) $(bindir)
-	$(INSTALL_DATA) $(MAN) $(mandir)/man1
+	$(INSTALL) -d $(DESTDIR)$(bindir) $(DESTDIR)$(mandir)/man1
+	$(INSTALL_PROGRAM) $(EXECUTABLE) $(DESTDIR)$(bindir)
+	$(INSTALL_DATA) $(MAN) $(DESTDIR)$(mandir)/man1
 
 tgz:		all gg-sfdc.spec
 	[ -z "`svk diff`" ] || (echo "Not checked in!"; exit 10)
