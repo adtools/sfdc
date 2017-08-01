@@ -5559,13 +5559,15 @@ Returns 0 on success and 10 on errors.
 =head1 NOTES
 
 Had I seen F<cvinclude.pl> before I started writing this program, I
-might still have been using fd/clib files. Or maybe not.
+might still have been using fd/clib files. Or maybe not.
 
 =head1 AUTHOR
 
 Martin Blom <martin@blom.org>
 
 =head1 HISTORY
+
+=over
 
 =item B<1.0 (2003-07-27)>
 
@@ -5591,6 +5593,10 @@ Replace AROS_LP with AROS_LD. Because it is guaranteed to define the
 function prototype. [verhaegs]
 
 =item B<1.3 (2004-11-12)>
+
+=over 2
+
+=item
 
 Correctly handle the argument C<type **arg>, where there is no
 whitespace between the argument type and the argument name.
@@ -5627,7 +5633,13 @@ sure gateprotos are included before you include the functable.
 
 B<proto> files now include F<Include/defines/> files when used in AROS.
 
+=back
+
 =item B<1.4 (2005-09-23)>
+
+=over 2
+
+=item
 
 Added AmigaOS 4-style interfaces (C++ only for non-OS4 targets, and
 without implementation).
@@ -5662,3 +5674,7 @@ B<gateproto>.
 =item
 
 Added the B<autoopen> mode.
+
+=back
+
+=back
