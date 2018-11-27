@@ -1,8 +1,15 @@
-# Process this file with autoconf to produce a configure script.
-AC_INIT(sfdc, 1.10, martin@blom.org)
+# Versioning
+m4_define([v_maj], [1])
+m4_define([v_min], [10])
+m4_define([v_mic], [4])
+m4_define([project_version], [v_maj.v_min.v_mic])
 
-VERSION=1.10
-DATE=2016-04-11
+# Process this file with autoconf to produce a configure script.
+AC_INIT(sfdc, [project_version], martin@blom.org)
+
+# Information on the package
+VERSION=[project_version]
+DATE=2018-11-28
 AC_SUBST(VERSION)
 AC_SUBST(DATE)
 
@@ -16,7 +23,11 @@ AC_PROG_INSTALL
 
 # Checks for header files.
 
-# Checks for typedefs, structures, and compiler characteristics.
+# Checks for typedefs and types
+
+# Checks for structures
+
+# Checks for compiler characteristics
 
 # Checks for library functions.
 
