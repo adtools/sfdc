@@ -146,6 +146,15 @@ my %targets = (
              interface => 'Interface'
              },
              
+            'm68kvbcc(-unknown)?-amigaos' =>
+             { target    => 'amigaos',
+             vectors   => { 'library' => @lf, 'device' => @df, 'boopsi' => @bf },
+             macros    => 'MacroVBCC68k',
+             stubs     => 'Stub68k',
+             gatestubs => 'Gate68k',
+             interface => 'Interface'
+             },
+             
             'p(ower)?pc(-unknown)?-amigaos' =>
              { target    => 'amigaos4',
              vectors   => { 'library' => @lf, 'device' => @df, 'boopsi' => @bf },
