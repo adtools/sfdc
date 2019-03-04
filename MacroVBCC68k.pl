@@ -92,47 +92,49 @@ BEGIN {
 	        if(($type =~ m/int64/) || ($type =~ m/double/) || ($type =~ m/long\s*long/))
     	    {
         		my $regnum = substr $reg, 1;
-        		if($regnum % 2)
-        		{
-        			if($regswap ne "")
-        			{
-        				print STDERR "Can only handle 1 pair of misaligned registers in function " . $$prototype{'funcname'} ."\n";
-        				return;
-        			}
-        			# odd register so we need to do register swap
-        			$regnum--;
-        			$reg = "d" . ($regnum ) . "/d" . ($regnum + 1);
-        			$$prototype{'regs'}[$arg] = $reg;
-        			my $found = 0;
-        			for(my $i = 0; $i <  $$prototype{"numargs"}; $i++)
-        			{
-        				if($$prototype{'regs'}[$i] eq "d" . $regnum)
-        				{
-        					$found = 1;
-        					$$prototype{'regs'}[$i] = "d" . ($regnum + 2);
-        					last;
-        				}
-        			}
-        			if($found)
-        			{
-        				# reset the function and start loop again.
-        				$function = $function_start;
-        				$arg = -1;
-        				$regswap = "\\texg\\td" . ($regnum + 1). ",d" . ($regnum + 2) . "\\n\\texg\\td" . ($regnum) . ",d" . ($regnum + 1) . "\\n\\t";
-        				next;
-        			}
-        			else
-        			{
-        				print STDERR "Unable to wrangle registers for misaligned 64bit arg in function " . $$prototype{'funcname'} ."\n";
-        				return;
-        			}
-        		}
-        		else
-        		{
-        			$reg .= "/d" . ($regnum + 1);
-        		}
+       			$reg .= "/d" . ($regnum + 1);
         	}
         }
+        # if a register pair makde sure it's even aligned.
+        if($reg =~ m/^d(\d)\/d\d$/)
+        {
+        	my $regnum = $1;
+			if($regnum % 2)
+        	{
+      			if($regswap ne "")
+      			{
+      				print STDERR "Can only handle 1 pair of misaligned registers in function " . $$prototype{'funcname'} ."\n";
+      				return;
+      			}
+      			# odd register so we need to do register swap
+      			$regnum--;
+      			$reg = "d" . ($regnum ) . "/d" . ($regnum + 1);
+      			$$prototype{'regs'}[$arg] = $reg;
+      			my $found = 0;
+      			for(my $i = 0; $i <  $$prototype{"numargs"}; $i++)
+      			{
+      				if($$prototype{'regs'}[$i] eq "d" . $regnum)
+      				{
+      					$found = 1;
+      					$$prototype{'regs'}[$i] = "d" . ($regnum + 2);
+      					last;
+      				}
+      			}
+      			if($found)
+      			{
+      				# reset the function and start loop again.
+      				$function = $function_start;
+      				$arg = -1;
+      				$regswap = "\\texg\\td" . ($regnum + 1). ",d" . ($regnum + 2) . "\\n\\texg\\td" . ($regnum) . ",d" . ($regnum + 1) . "\\n\\t";
+      				next;
+      			}
+      			else
+      			{
+      				print STDERR "Unable to wrangle registers for misaligned 64bit arg in function " . $$prototype{'funcname'} ."\n";
+      				return;
+      			}
+      		}
+      	}
         $function .= ", __reg(\"" . $reg . "\") " . $$prototype{'args'}[$arg] . " ";
       }
       
