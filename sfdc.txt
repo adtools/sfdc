@@ -147,6 +147,9 @@
             [1mm68k-unknown-amigaos[0m, [1mm68k-amigaos[0m
                 Traditional AmigaOS/m68k.
 
+            [1mm68kvbcc-unknown-amigaos[0m, [1mm68k-amigaos[0m
+                Traditional AmigaOS/m68k but with the VBCC compiler.
+
             [1mppc-unknown-amigaos[0m, [1mppc-amigaos[0m
                 AmigaOS 4/PowerPC.
 
