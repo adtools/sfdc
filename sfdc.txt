@@ -147,6 +147,9 @@
             [1mm68k-unknown-amigaos[0m, [1mm68k-amigaos[0m
                 Traditional AmigaOS/m68k.
 
+            [1mm68kvbcc-unknown-amigaos[0m, [1mm68k-amigaos[0m
+                Traditional AmigaOS/m68k but with the VBCC compiler.
+
             [1mppc-unknown-amigaos[0m, [1mppc-amigaos[0m
                 AmigaOS 4/PowerPC.
 
@@ -215,61 +218,67 @@
     Martin Blom <martin@blom.org>
 
 [1mHISTORY[0m
-    [1m1.0 (2003-07-27)[0m
+    *   [1m1.0 (2003-07-27)[0m
+
         Initial release.
 
-    [1m1.1 (2003-12-22)[0m
+    *   [1m1.1 (2003-12-22)[0m
+
         Added workaround for workbench.library (base name is "wb"). Added
         AmigaOS 4 support. Added the [1m--addvectors[0m switch.
 
-    [1m1.2 (2004-06-16)[0m
+    *   [1m1.2 (2004-06-16)[0m
+
         Generates files for mathieeedoub*, though probably broken. Well they
         are the same as fd2inline generates at least.
 
-    [1m1.2a (2004-06-20)[0m
+    *   [1m1.2a (2004-06-20)[0m
+
         Replace AROS_LP with AROS_LD. Because it is guaranteed to define the
         function prototype. [verhaegs]
 
-    [1m1.3 (2004-11-12)[0m
+    *   [1m1.3 (2004-11-12)[0m
+
         Correctly handle the argument "type **arg", where there is no
         whitespace between the argument type and the argument name.
 
-        Correctly handle the prototype "void function (void)", were there is
+    *   Correctly handle the prototype "void function (void)", were there is
         a whitespace between the function name and the parenthesis and
         "void" is used to indicate no arguments.
 
-        Replace "-" with "_" in base/library name.
+    *   Replace "-" with "_" in base/library name.
 
-        New special keyword for register specification (in addition to
+    *   New special keyword for register specification (in addition to
         [1msysv[0m and [1mbase[0m): [1mautoreg[0m, which automatically allocates m68k
         registers for the arguments.
 
-        [1msysv[0m now works correctly with varargs functions. [1msysv[0m combined with
+    *   [1msysv[0m now works correctly with varargs functions. [1msysv[0m combined with
         [1mgatestubs[0m work for m68k and i386 only for now. For AROS targets in
         [1mmacros[0m, the correct AROS macro is used to fetch the function to be
         called.
 
-        New [1m--mode[0m: [1mfunctable[0m. For proper code generation in AROS, make sure
+    *   New [1m--mode[0m: [1mfunctable[0m. For proper code generation in AROS, make sure
         gateprotos are included before you include the functable.
 
-        [1mproto[0m files now include [36mInclude/defines/[0m files when used in AROS.
+    *   [1mproto[0m files now include [36mInclude/defines/[0m files when used in AROS.
 
-    [1m1.4 (2005-09-23)[0m
+    *   [1m1.4 (2005-09-23)[0m
+
         Added AmigaOS 4-style interfaces (C++ only for non-OS4 targets, and
         without implementation).
 
-        The library base in the [1mproto[0m file is now defined for AmigaOS 4 too.
+    *   The library base in the [1mproto[0m file is now defined for AmigaOS 4 too.
 
-        AmigaOS 4 [1mclib[0m files now add [1m__attribute__((linearvarargs))[0m to
+    *   AmigaOS 4 [1mclib[0m files now add [1m__attribute__((linearvarargs))[0m to
         varargs functions.
 
-        Added AmigaOS 4 support for [1mstubs[0m files.
+    *   Added AmigaOS 4 support for [1mstubs[0m files.
 
-        Added support for the 'iptr' gcc attribute.
+    *   Added support for the 'iptr' gcc attribute.
 
-        Added [1m__SFDC_FUNCTABLE_M68K__[0m check in the [1mfunctable[0m mode.
+    *   Added [1m__SFDC_FUNCTABLE_M68K__[0m check in the [1mfunctable[0m mode.
 
-        Added m68k stub functions to AmigaOS 4's [1mgatestubs[0m and [1mgateproto[0m.
+    *   Added m68k stub functions to AmigaOS 4's [1mgatestubs[0m and [1mgateproto[0m.
 
-        Added the [1mautoopen[0m mode.
+    *   Added the [1mautoopen[0m mode.
 

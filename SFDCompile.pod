@@ -141,7 +141,7 @@ Generate an assembler LVO include file.
 Generate a header file containing F<gcc> specific preprocessor macros,
 similar to F<fd2inline>'s B<--new> switch. For AROS targets, it
 generates a file suitable to be placed in the F<Include/defines/>
-directory.
+directory. 
 
     
 =item B<proto>
@@ -227,6 +227,10 @@ Amithlon/big endian IA32.
 =item B<m68k-unknown-amigaos>, B<m68k-amigaos>
 
 Traditional AmigaOS/m68k.
+
+=item B<m68kvbcc-unknown-amigaos>, B<m68k-amigaos>
+
+Traditional AmigaOS/m68k but with the VBCC compiler.
 
 
 =item B<ppc-unknown-amigaos>, B<ppc-amigaos>

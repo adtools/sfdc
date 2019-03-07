@@ -146,6 +146,15 @@ my %targets = (
              interface => 'Interface'
              },
              
+            'm68kvbcc(-unknown)?-amigaos' =>
+             { target    => 'amigaosvbcc',
+             vectors   => { 'library' => @lf, 'device' => @df, 'boopsi' => @bf },
+             macros    => 'MacroVBCC68k',
+             stubs     => 'Stub',
+             gatestubs => 'Gate',
+             interface => 'Interface'
+             },
+             
             'p(ower)?pc(-unknown)?-amigaos' =>
              { target    => 'amigaos4',
              vectors   => { 'library' => @lf, 'device' => @df, 'boopsi' => @bf },
@@ -594,16 +603,17 @@ sub parse_sfd ( $ ) {
             " '$file'. The line looks like this:\n" . $line ;
           die;
       };
-      
       if ( $proto_line =~
            /.*[A-Za-z0-9_]+\s*\(.*\).*\(((base|sysv|autoreg|[\saAdD][0-7]-?),?)*\)\s*$/
            ) {
 
           if ($proto_line =~ /.*\(.*[0-7]-.*\)\s*$/) {
-            if ($$classes{'target'} ne 'amigaos') {
+            if (($$classes{'target'} ne 'amigaos') && ($$classes{'target'} ne 'amigaosvbcc')) {
                 print STDERR "Warning: Multiregister functions are m68k only.\n";
             }
-            $proto_line =~ s/([da][0-7])-[da][0-7]/$1/g;
+            if ($$classes{'target'} ne 'amigaosvbcc') {
+              $proto_line =~ s/([da][0-7])-[da][0-7]/$1/g;
+            }
           }
 #         else {
             push @{$$result{'prototypes'}}, {
