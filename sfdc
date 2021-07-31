@@ -493,7 +493,8 @@ sub parse_sfd ( $ ) {
     while (my $line = <SFD>) {
 
       ++$line_no;
-      
+      $line =~ s/\r//g; 
+
       for ($line) {
           /==copyright\s/ && do {
             ( $$result{'copyright'} = $_ ) =~ s/==copyright\s+(.*)\s*/$1/;
@@ -725,12 +726,30 @@ sub parse_proto ( $$$ ) {
     # strip leading+trailing spaces first
     $$prototype{'value'} =~ s/^\s+|\s+$//g;
 
+	print STDERR "->" . $$prototype{'value'} . "\n";
+
+	# eliminate double spaces 
+    $$prototype{'value'} =~ s/\s\s+/ /g;
+	# eliminate spaces after opening brackets
+    $$prototype{'value'} =~ s/\(\s+([^,)]+)/\(${1}/g;
+	# eliminate spaces before closing brackets
+    $$prototype{'value'} =~ s/\s+\)/\)/g;
+	# eliminate square brackets - WTF??
+    $$prototype{'value'} =~ s/\[|\]//g;
+	# insert space between )(
+#    $$prototype{'value'} =~ s/\)\(/\) \(/g;
+	# insert space after * if missing
+    $$prototype{'value'} =~ s/\*(\S)/\* ${1}/g;
+
+	print STDERR "->" . $$prototype{'value'} . "\n";
+	
     # we are doing a reverse regexp match here to make the regular expression
     # substantially easier as sfd prototypes can be better matched from the back to the front
     # (e.g. always starts with '()')
     $str = $$prototype{'value'};
     @array = (reverse $str) =~ / \)( (?: [^()]* | (?0) )* )\( /xg;
 
+	
     $registers = reverse $array[0];
     $registers =~ s/^\s+|\s+$//g;   # trim whitspaces
     $arguments = reverse $array[1];
