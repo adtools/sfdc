@@ -729,7 +729,7 @@ sub parse_proto ( $$$ ) {
 	print STDERR "->" . $$prototype{'value'} . "\n";
 
 	# eliminate double spaces 
-    $$prototype{'value'} =~ s/\s\s+/ /g;
+    $$prototype{'value'} =~ s/\s\s*/ /g;
 	# eliminate spaces after opening brackets
     $$prototype{'value'} =~ s/\(\s+([^,)]+)/\(${1}/g;
 	# eliminate spaces before closing brackets
