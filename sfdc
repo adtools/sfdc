@@ -726,6 +726,7 @@ sub parse_proto ( $$$ ) {
 
     # strip leading+trailing spaces first
     $$prototype{'value'} =~ s/^\s+|\s+$//g;
+	$$prototype{'value'} =~ s/__stdargs//g; # trim __stdargs
 
 	print STDERR "->" . $$prototype{'value'} . "\n";
 
@@ -759,7 +760,6 @@ sub parse_proto ( $$$ ) {
     $name = substr($str, 0, index($str, "(" . $arguments . ")"));
     $name =~ s/^\s+|\s+$//g; # trim whitspaces
     $return = substr($name, 0, rindex($name, " "));
-	$return =~ s/__stdargs//g; # trim __stdargs
     $name = substr($name, rindex($name, " "));
     $name =~ s/^\s+|\s+$//g; # trim whitspaces
 
