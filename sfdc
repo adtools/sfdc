@@ -759,6 +759,7 @@ sub parse_proto ( $$$ ) {
     $name = substr($str, 0, index($str, "(" . $arguments . ")"));
     $name =~ s/^\s+|\s+$//g; # trim whitspaces
     $return = substr($name, 0, rindex($name, " "));
+	$return =~ s/__stdargs//g; # trim __stdargs
     $name = substr($name, rindex($name, " "));
     $name =~ s/^\s+|\s+$//g; # trim whitspaces
 
