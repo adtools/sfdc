@@ -605,9 +605,11 @@ sub parse_sfd ( $ ) {
             " '$file'. The line looks like this:\n" . $line ;
           die;
       };
+#	  print STDERR "IN " . $proto_line . "\n";
       if ( $proto_line =~
-           /.*[A-Za-z0-9_]+\s*\(.*\).*\(((base|sysv|autoreg|[\saAdD][0-7]-?),?)*\)\s*$/
+           /.*[A-Za-z0-9_]+\s*\(.*\).*\(\s*((base|sysv|autoreg|\s*[\saAdD][0-7]-?)\s*,?)*\)\s*$/
            ) {
+#	  print STDERR "URKS " . $proto_line . "\n";
 
           if ($proto_line =~ /.*\(.*[0-7]-.*\)\s*$/) {
             if (($$classes{'target'} ne 'amigaos') && ($$classes{'target'} ne 'amigaosvbcc')) {
@@ -731,7 +733,9 @@ sub parse_proto ( $$$ ) {
 	print STDERR "->" . $$prototype{'value'} . "\n";
 
 	# eliminate double spaces 
-    $$prototype{'value'} =~ s/\s\s*/ /g;
+    $$prototype{'value'} =~ s/\s+/ /g;
+	# eliminate spaces befor registers
+    $$prototype{'value'} =~ s/,\s+([ad][0-7])/,${1}/g;
 	# eliminate spaces after opening brackets
     $$prototype{'value'} =~ s/\(\s+([^,)]+)/\(${1}/g;
 	# eliminate spaces before closing brackets
