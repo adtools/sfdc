@@ -209,9 +209,9 @@ GetOptions ('addvectors=s' => \$addvectors,
           'version|v'    => \$version) or exit 10;
 
 if ($version) {
-    print STDERR "sfdc 1.11b (2021-08-12)\n";
+    print STDERR "sfdc 1.11c (2022-02-04)\n";
     print STDERR "Copyright (C) 2003-2016 Martin Blom <martin\@blom.org>\n";
-    print STDERR "Patched   in  2021   by Bebbo <bebbo\@bejy.net>\n";
+    print STDERR "Patched   in  2021-2022 by Bebbo <bebbo\@bejy.net>\n";
     print STDERR "This is free software; " .
       "see the source for copying conditions.\n";
     exit 0;
