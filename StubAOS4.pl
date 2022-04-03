@@ -294,7 +294,7 @@ BEGIN {
 
       my @newargs;
 
-      for my $i (0 .. $#{@{$prototype->{___args}}}) {
+      for my $i (0 .. $#{$prototype->{___args}}) {
           if ($prototype->{subtype} ne 'methodcall' ||
             $i != $prototype->{numargs} - 2 ) {
             push @newargs, $prototype->{___args}[$i];
