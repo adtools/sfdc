@@ -28,7 +28,13 @@ BEGIN {
             print "  BASE_EXT_DECL\n";
           }
           if (!$prototype->{nr}) {
-            print "  register $prototype->{return} _res __asm(\"d0\");\n";
+            my $rettype_prefix = $prototype->{return};
+            my $rettype_postfix = "";
+            if ($prototype->{return} =~ /(.*\(\*+)(\).*)/) {
+              $rettype_prefix = $1;
+              $rettype_postfix = $2;
+            }
+            print "  register $rettype_prefix _res $rettype_postfix __asm(\"d0\");\n";
           }
           if (!$prototype->{nb}) {
             print "  register $sfd->{basetype} _base __asm(\"a6\") " .
