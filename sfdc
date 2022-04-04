@@ -699,9 +699,9 @@ sub parse_sfd ( $ ) {
     }
 
     $$result{'basename'} =~ s/-/_/g;
-    $$result{'basename'} = lc $$result{'basename'};
     $$result{'BASENAME'} = uc $$result{'basename'};
-    $$result{'Basename'} = ucfirst $$result{'basename'};
+    $$result{'Basename'} = lc $$result{'basename'};
+    $$result{'Basename'} = ucfirst $$result{'Basename'};
     ($result->{BaseName} = $result->{base}) =~ s/Base//;
 
     return $result;
