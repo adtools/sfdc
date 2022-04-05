@@ -1,6 +1,6 @@
 # Versioning
 m4_define([v_maj], [1])
-m4_define([v_min], [11c])
+m4_define([v_min], [12])
 m4_define([project_version], [v_maj.v_min])
 
 # Process this file with autoconf to produce a configure script.
@@ -8,7 +8,7 @@ AC_INIT(sfdc, [project_version], martin@blom.org)
 
 # Information on the package
 VERSION=[project_version]
-DATE=2019-03-07
+DATE=2022-04-05
 AC_SUBST(VERSION)
 AC_SUBST(DATE)
 

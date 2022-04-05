@@ -100,8 +100,8 @@
                 inlines or pragma files.
 
             [1mpragmas[0m
-                Generate a [36mSAS/C[0m/[36mLATTICE[0m/[36mDICE[0m and [36mMaxon C[0m/[36mStorm C[0m/[36mAztec
-                C[0m pragma file.
+                Generate a [36mSAS/C[0m/[36mLATTICE[0m/[36mDICE[0m and [36mMaxon C[0m/[36mStorm C[0m/[36mAztec C[0m
+                pragma file.
 
             [1mstubs[0m
                 Generate C library stubs suitable to be compiled and
@@ -137,8 +137,7 @@
             names follow the GNU autoconf standard. Some possible values are
             listed below. The default is [1mm68k-unknown-amigaos[0m.
 
-            [1mi?86-pc-aros[0m, [1mi?86-linux-aros[0m, [1mppc-aros[0m
-            ...
+            [1mi?86-pc-aros[0m, [1mi?86-linux-aros[0m, [1mppc-aros[0m ...
                 AROS. Anything goes, as long as it ends in "-aros".
 
             [1mi?86be-pc-amithlon[0m, [1mi?86be-amithlon[0m
@@ -184,8 +183,8 @@
     *   Generate [36mgcc[0m [1minlines[0m (actually preprocessor macros) or [1mpragmas[0m for
         direct library function calls (without going via library stubs).
 
-    *   Generate the [36mInclude/proto/[0m file, which includes the
-        [36mInclude/clib/[0m file and either the inlines or pragmas.
+    *   Generate the [36mInclude/proto/[0m file, which includes the [36mInclude/clib/[0m
+        file and either the inlines or pragmas.
 
     *   Generate an [1massembler LVO[0m file, which contains the library offset of
         all functions in the library.
@@ -248,9 +247,9 @@
 
     *   Replace "-" with "_" in base/library name.
 
-    *   New special keyword for register specification (in addition to
-        [1msysv[0m and [1mbase[0m): [1mautoreg[0m, which automatically allocates m68k
-        registers for the arguments.
+    *   New special keyword for register specification (in addition to [1msysv[0m
+        and [1mbase[0m): [1mautoreg[0m, which automatically allocates m68k registers for
+        the arguments.
 
     *   [1msysv[0m now works correctly with varargs functions. [1msysv[0m combined with
         [1mgatestubs[0m work for m68k and i386 only for now. For AROS targets in

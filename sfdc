@@ -209,9 +209,8 @@ GetOptions ('addvectors=s' => \$addvectors,
           'version|v'    => \$version) or exit 10;
 
 if ($version) {
-    print STDERR "sfdc 1.11c (2022-02-04)\n";
+    print STDERR "sfdc 1.12 (2022-04-05)\n";
     print STDERR "Copyright (C) 2003-2016 Martin Blom <martin\@blom.org>\n";
-    print STDERR "Patched   in  2021-2022 by Bebbo <bebbo\@bejy.net>\n";
     print STDERR "This is free software; " .
       "see the source for copying conditions.\n";
     exit 0;
@@ -605,11 +604,9 @@ sub parse_sfd ( $ ) {
             " '$file'. The line looks like this:\n" . $line ;
           die;
       };
-#	  print STDERR "IN " . $proto_line . "\n";
       if ( $proto_line =~
            /.*[A-Za-z0-9_]+\s*\(.*\).*\(\s*((base|sysv|autoreg|\s*[\saAdD][0-7]-?)\s*,?)*\)\s*$/
            ) {
-#	  print STDERR "URKS " . $proto_line . "\n";
 
           if ($proto_line =~ /.*\(.*[0-7]-.*\)\s*$/) {
             if (($$classes{'target'} ne 'amigaos') && ($$classes{'target'} ne 'amigaosvbcc')) {
@@ -730,7 +727,7 @@ sub parse_proto ( $$$ ) {
     $$prototype{'value'} =~ s/^\s+|\s+$//g;
 	$$prototype{'value'} =~ s/__stdargs//g; # trim __stdargs
 
-	print STDERR "->" . $$prototype{'value'} . "\n";
+#	print STDERR "->" . $$prototype{'value'} . "\n";
 
 	# eliminate double spaces 
     $$prototype{'value'} =~ s/\s+/ /g;
@@ -745,17 +742,17 @@ sub parse_proto ( $$$ ) {
 	# insert space between )(
 #    $$prototype{'value'} =~ s/\)\(/\) \(/g;
 	# insert space after * if missing
-    $$prototype{'value'} =~ s/\*(\S)/\* ${1}/g;
+#    $$prototype{'value'} =~ s/\*(\S)/\* ${1}/g;
 
-	print STDERR "->" . $$prototype{'value'} . "\n";
+#	print STDERR "->" . $$prototype{'value'} . "\n";
 	
+
     # we are doing a reverse regexp match here to make the regular expression
     # substantially easier as sfd prototypes can be better matched from the back to the front
     # (e.g. always starts with '()')
     $str = $$prototype{'value'};
     @array = (reverse $str) =~ / \)( (?: [^()]* | (?0) )* )\( /xg;
 
-	
     $registers = reverse $array[0];
     $registers =~ s/^\s+|\s+$//g;   # trim whitspaces
     $arguments = reverse $array[1];
@@ -933,16 +930,17 @@ sub parse_proto ( $$$ ) {
       my $___name = '';
       my $___arg  = '';
 
-      # MorhOS includes use __CLIB_PROTOTYPE for some reason ...
+      # MorphOS includes use __CLIB_PROTOTYPE for some reason ...
       if ($arg =~ /.*\(.*?\)\s*(__CLIB_PROTOTYPE)?\(.*\)/) {
           my $type1;
           my $type2;
-          
-          ($type1, $name, $type2) =
-            ( $arg =~ /^\s*(.*)\(\s*\*+\s*(\w+)\s*\)\s*(\w*\(.*\))\s*/ );
-          $type = "$type1(*)$type2";
+          my $ptr;
+
+          ($type1, $ptr, $name, $type2) =
+            ( $arg =~ /^\s*(.*)\(\s*(\*+)\s*(\w+)\s*\)\s*(\w*\(.*\))\s*/ );
+          $type = "$type1($ptr)$type2";
           $___name = "___$name";
-          $___arg = "$type1(*___$name) $type2";
+          $___arg = "$type1($ptr"."___$name) $type2";
       }
       elsif ($arg !~ /^\.\.\.$/) {
           ($type, $name) = ( $arg =~ /^\s*(.*?[\s*]*?)\s*(\w+)\s*$/ );
@@ -1050,1085 +1048,10 @@ sub BEGIN {
     }
 }
 
-### Class GateAROS: Create an AROS gatestub file ##############################
+### Class AutoOpen: Create a proto file #######################################
 
 BEGIN {
-    package GateAROS;
-    use vars qw(@ISA);
-    @ISA = qw( Gate );
-
-    sub new {
-      my $proto  = shift;
-      my $class  = ref($proto) || $proto;
-      my $self   = $class->SUPER::new( @_ );
-      bless ($self, $class);
-      return $self;
-    }
-
-    sub header {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-      
-      $self->SUPER::header (@_);
-
-      print "#include <aros/libcall.h>\n";
-      print "\n";
-    }
-
-    sub function {
-      my $self     = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      if ($prototype->{type} eq 'cfunction') {
-          print "#define $gateprefix$prototype->{funcname} " .
-            "AROS_SLIB_ENTRY(" .
-            "$gateprefix$prototype->{funcname},$sfd->{Basename})\n\n";
-      }
-
-      $self->SUPER::function (@_);
-    }
-      
-    sub function_start {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-      my $nb        = $prototype->{nb} || $libarg eq 'none';
-
-      # AROS macros cannot handle function pointer arguments :-(
-
-      for my $i (0 .. $prototype->{numargs} - 1) {
-          if ($prototype->{argtypes}[$i] =~ /\(\*\)/) {
-            my $typedef  = $prototype->{argtypes}[$i];
-            my $typename = "$sfd->{Basename}_$prototype->{funcname}_fp$i";
-
-            $typedef =~ s/\(\*\)/(*_$typename)/;
-                
-            print "typedef $typedef;\n";
-          }
-      }
-
-      if ($self->{PROTO}) {
-          printf "AROS_LD%d%s(", $prototype->{numargs}, $nb ? "I" : "";
-      }
-      else {
-          printf "AROS_LH%d%s(", $prototype->{numargs}, $nb ? "I" : "";
-      }
-      print "$prototype->{return}, $gateprefix$prototype->{funcname},\n";
-    }
-
-    sub function_arg {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $argtype   = $params{'argtype'};
-      my $argname   = $params{'argname'};
-      my $argreg    = $params{'argreg'};
-      my $argnum    = $params{'argnum'};
-      my $sfd       = $self->{SFD};
-
-      if ($argtype =~ /\(\*\)/) {
-          $argtype = "_$sfd->{Basename}_$prototype->{funcname}_fp$argnum";
-      }
-
-      if ($self->{PROTO}) {
-          print " AROS_LDA($argtype, $argname, " . (uc $argreg) . "),\n";
-      }
-      else {
-          print " AROS_LHA($argtype, $argname, " . (uc $argreg) . "),\n";
-      }         
-    }
-    
-    sub function_end {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      my $bt = "/* bt */";
-      my $bn = "/* bn */";
-
-      if ($prototype->{nb}) {
-          for my $i (0 .. $#{$prototype->{regs}}) {
-            if ($prototype->{regs}[$i] eq 'a6') {
-                $bt = $prototype->{argtypes}[$i];
-                $bn  =$prototype->{___argnames}[$i];
-                last;
-            }
-          }
-      }
-      else {
-          $bt = $sfd->{basetype};
-          $bn = "_base";
-      }
-
-      printf "    $bt, $bn, %d, $sfd->{Basename})",
-      $prototype->{bias} / 6;
-
-      if ($self->{PROTO}) {
-          print ";\n";
-          print "#define $gateprefix$prototype->{funcname} " .
-            "AROS_SLIB_ENTRY(" .
-            "$gateprefix$prototype->{funcname},$sfd->{Basename})\n";
-      }
-      else {
-          print "\n";
-          print "{\n";
-          print "  AROS_LIBFUNC_INIT\n";
-          print "  return $libprefix$prototype->{funcname}(";
-
-          if ($libarg eq 'first' && !$prototype->{nb}) {
-            print "_base";
-            print $prototype->{numargs} > 0 ? ", " : "";
-          }
-
-          print join (', ', @{$prototype->{___argnames}});
-      
-          if ($libarg eq 'last' && !$prototype->{nb}) {
-            print $prototype->{numargs} > 0 ? ", " : "";
-            print "_base";
-          }
-      
-          print ");\n";
-          print "  AROS_LIBFUNC_EXIT\n";
-          print "}\n";
-      }
-    }
-}
-
-### Class FD: Create an old-style FD file #####################################
-
-BEGIN {
-    package FD;
-
-    sub new {
-      my $proto  = shift;
-      my %params = @_;
-      my $class  = ref($proto) || $proto;
-      my $self   = {};
-      $self->{SFD}     = $params{'sfd'};
-      $self->{BIAS}    = -1;
-      $self->{PRIVATE} = -1;
-      $self->{VERSION} = 1;
-      bless ($self, $class);
-      return $self;
-    }
-
-    sub header {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-
-      print "* \"$$sfd{'libname'}\"\n";
-      print "* Automatically generated FD (sfdc 1.11c)! Do not edit!\n";
-      print "##base _$$sfd{'base'}\n";
-      $self->{BIAS}    = -1;
-      $self->{PRIVATE} = -1;
-      $self->{VERSION} = 1;
-    }
-
-    sub function {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      if ($prototype->{type} eq 'function' ||
-          $prototype->{type} eq 'cfunction') {
-          if ($self->{BIAS} != $$prototype{'bias'}) {
-            $self->{BIAS} = $$prototype{'bias'};
-            print "##bias $self->{BIAS}\n";
-          }
-
-          if ($self->{PRIVATE} != $$prototype{'private'}) {
-            $self->{PRIVATE} = $$prototype{'private'};
-            print $self->{PRIVATE} == 1 ? "##private\n" : "##public\n";
-          }
-
-          if ($self->{VERSION} != $$prototype{'version'}) {
-            $self->{VERSION} = $$prototype{'version'};
-
-            print "*--- functions in V$self->{VERSION} or higher ---\n";
-          }
-
-          if ($$prototype{'comment'} ne '') {
-            my $comment = $$prototype{'comment'};
-
-            $comment =~ s/^/\*/m;
-            
-            print "$comment\n";
-          }
-          
-          print "$$prototype{'funcname'}(";
-          print join (',', @{$$prototype{'argnames'}});
-          print ")(";
-
-          if ($prototype->{type} eq 'function') {
-            print join (',', @{$$prototype{'regs'}});
-          }
-          elsif ($prototype->{type} eq 'cfunction') {
-            print "base," unless $prototype->{nb};
-            print "$prototype->{subtype}";
-          }
-          else {
-            die;
-          }
-          
-          print ")\n";
-      
-          $self->{BIAS} += 6;
-      }
-    }
-    
-    sub footer {
-      my $self = shift;
-
-      print "##end\n";
-    }
-}
-
-### Class Gate68k: Create a AmigaOS gatestub file #############################
-
-BEGIN {
-    package Gate68k;
-    use vars qw(@ISA);
-    @ISA = qw( Gate );
-
-    sub new {
-      my $proto  = shift;
-      my $class  = ref($proto) || $proto;
-      my $self   = $class->SUPER::new( @_ );
-      bless ($self, $class);
-      return $self;
-    }
-
-    sub function_start {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      print "$prototype->{return}\n";
-      print "$gateprefix$prototype->{funcname}(";
-    }
-
-    sub function_arg {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $argtype   = $params{'argtype'};
-      my $argname   = $params{'argname'};
-      my $argreg    = $params{'argreg'};
-      my $argnum    = $params{'argnum'};
-      my $sfd       = $self->{SFD};
-
-      if ($argnum != 0) {
-          print ",\n";
-      }
-
-      print "     $prototype->{___args}[$argnum] __asm(\"$argreg\")";
-    }
-    
-    sub function_end {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      if ($libarg ne 'none' && !$prototype->{nb}) {
-          if ($prototype->{numargs} > 0 ) {
-            print ",\n";
-          }
-
-          print " $sfd->{basetype} _base __asm(\"a6\")";
-      }
-      elsif ($prototype->{numargs} == 0) {
-          print "void";
-      }
-
-      if ($self->{PROTO}) {
-          print ");\n";
-      }
-      else {
-          print ")\n";
-          print "{\n";
-
-          print "  return $libprefix$prototype->{funcname}(";
-
-          if ($libarg eq 'first' && !$prototype->{nb}) {
-            print "_base";
-            print $prototype->{numargs} > 0 ? ", " : "";
-          }
-
-          print join (', ', @{$prototype->{___argnames}});
-
-          if ($libarg eq 'last' && !$prototype->{nb}) {
-            print $prototype->{numargs} > 0 ? ", " : "";
-            print "_base";
-          }
-      
-          print ");\n";
-          print "}\n";
-      }
-    }
-}
-
-### Class Stub68k: Create a 68k stub file #####################################
-
-BEGIN {
-    package Stub68k;
-    use vars qw(@ISA);
-    @ISA = qw( Stub );
-
-    sub new {
-      my $proto  = shift;
-      my $class  = ref($proto) || $proto;
-      my $self   = $class->SUPER::new( @_ );
-      bless ($self, $class);
-      return $self;
-    }
-
-    sub function_start {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      if ($prototype->{type} eq 'function') {
-          print "\n";
-          print "{\n";
-
-          if (!$prototype->{nb}) {
-            print "  BASE_EXT_DECL\n";
-          }
-          if (!$prototype->{nr}) {
-            print "  register $prototype->{return} _res __asm(\"d0\");\n";
-          }
-          if (!$prototype->{nb}) {
-            print "  register $sfd->{basetype} _base __asm(\"a6\") " .
-                "= BASE_NAME;\n";
-          }
-      }
-      else {
-          $self->SUPER::function_start (@_);
-      }
-    }
-
-    sub function_arg {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $argtype   = $params{'argtype'};
-      my $argname   = $params{'argname'};
-      my $argreg    = $params{'argreg'};
-      my $argnum    = $params{'argnum'};
-      my $sfd       = $self->{SFD};
-
-      if ($$prototype{'type'} eq 'function') {
-          if ($argreg eq 'a4' || $argreg eq 'a5') {
-            $argreg = 'd7';
-          }
-          
-          print "  register $prototype->{args}[$argnum] __asm(\"$argreg\") " .
-            "= $argname;\n";
-      }
-      else {
-          $self->SUPER::function_arg (@_);
-      }
-    }
-    
-    sub function_end {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      
-      if ($$prototype{'type'} eq 'function') {
-          my $regs      = join(',', @{$$prototype{'regs'}});
-          my $a4        = $regs =~ /a4/;
-          my $a5        = $regs =~ /a5/;
-
-          if ($a4 && $a5 && !$quiet) {
-            print STDERR "$$prototype{'funcname'} uses both a4 and a5 " .
-                "for arguments. This is not going to work.\n";
-          }
-
-          if ($a4) {
-            print "  __asm volatile (\"exg d7,a4\\n\\tjsr a6@(-" .
-                "$prototype->{bias}:W)\\n\\texg d7,a4\"\n";
-          }
-          elsif ($a5) {
-            print "  __asm volatile (\"exg d7,a5\\n\\tjsr a6@(-" .
-                "$prototype->{bias}:W)\\n\\texg d7,a5\"\n";
-          }
-          else {
-            print "  __asm volatile (\"jsr a6@(-$prototype->{bias}:W)\"\n";
-          }
-          print "  : " .
-            ($prototype->{nr} ? "/* No output */" : '"=r" (_res)') . "\n";
-          print "  : ";
-          if (!$prototype->{nb}) {
-            print '"r" (_base)';
-          }
-
-          for my $i (0 .. $prototype->{numargs} - 1) {
-            if ($i != 0 || !$prototype->{nb}) {
-                print ", ";
-            }
-            
-            print '"r" (' . $prototype->{argnames}[$i] . ')';
-          }
-
-          print "\n";
-          print '  : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");';
-          print "\n";
-          
-          if (!$prototype->{nr}) {
-            print "  return _res;\n";
-          }
-
-          print "}\n";
-      }
-      else {
-          $self->SUPER::function_end (@_);
-      }
-    }
-}
-
-### Class StubAmithlon: Create a Amithlon stub file ###########################
-
-BEGIN {
-    package StubAmithlon;
-    use vars qw(@ISA);
-    @ISA = qw( Stub );
-
-    sub new {
-      my $proto  = shift;
-      my $class  = ref($proto) || $proto;
-      my $self   = $class->SUPER::new( @_ );
-      bless ($self, $class);
-      return $self;
-    }
-
-    sub header {
-      my $self = shift;
-      
-      $self->SUPER::header (@_);
-
-      print "#ifndef __INLINE_MACROS_H\n";
-      print "#define __INLINE_MACROS_H\n";
-      print "\n";
-      print "#ifndef __INLINE_MACROS_H_REGS\n";
-      print "#define __INLINE_MACROS_H_REGS\n";
-      print "\n";
-      print "#include <exec/types.h>\n";
-      print "\n";
-      print "struct _Regs {\n";
-      print "     ULONG d0;\n";
-      print "     ULONG d1;\n";
-      print "     ULONG d2;\n";
-      print "     ULONG d3;\n";
-      print "     ULONG d4;\n";
-      print "     ULONG d5;\n";
-      print "     ULONG d6;\n";
-      print "     ULONG d7;\n";
-      print "     ULONG a0;\n";
-      print "     ULONG a1;\n";
-      print "     ULONG a2;\n";
-      print "     ULONG a3;\n";
-      print "     ULONG a4;\n";
-      print "     ULONG a5;\n";
-      print "     ULONG a6;\n";
-      print "     ULONG a7;\n";
-      print "};\n";
-      print "\n";
-      print "#endif /* __INLINE_MACROS_H_REGS */\n";
-      print "\n";
-      print "ULONG _CallLib68k(struct _Regs*,LONG) " .
-          "__attribute__((__regparm__(3)));\n";
-      print "\n";
-      print "#endif /* __INLINE_MACROS_H */\n";
-      print "\n";
-    }
-    
-    sub function_start {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      if ($prototype->{type} eq 'function') {
-          print "\n";
-          print "{\n";
-
-          if (!$prototype->{nb}) {
-            print "  BASE_EXT_DECL\n";
-          }
-          if (!$prototype->{nr}) {
-            print "  $prototype->{return} _res;\n";
-          }
-
-          print "  struct _Regs _regs;\n";
-      }
-      else {
-          $self->SUPER::function_start (@_);
-      }
-    }
-
-    sub function_arg {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $argtype   = $params{'argtype'};
-      my $argname   = $params{'argname'};
-      my $argreg    = $params{'argreg'};
-      my $argnum    = $params{'argnum'};
-
-      if ($$prototype{'type'} eq 'function') {
-          printf "  __asm(\"movl %%1,%%0\":\"=m\"(_regs.%s)" .
-            ":\"ri\"((ULONG)%s));\n", $argreg, $argname;
-      }
-      else {
-          $self->SUPER::function_arg (@_);
-      }
-    }
-    
-    sub function_end {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      
-      if ($$prototype{'type'} eq 'function') {
-          if (!$prototype->{nb}) {
-            print "  __asm(\"movl %1,%0\":\"=m\"(_regs.a6)" .
-                ":\"ri\"((ULONG)(BASE_NAME)));\n";
-          }
-
-          print "  ";
-          
-          if (!$prototype->{nr}) {
-            print "_res = ($prototype->{return}) ";
-          }
-
-          print "_CallLib68k(&_regs,-$prototype->{bias});\n";
-          
-          if (!$prototype->{nr}) {
-            print "  return _res;\n";
-          }
-
-          print "}\n";
-      }
-      else {
-          $self->SUPER::function_end (@_);
-      }
-    }
-}
-
-### Class Verify: Verify SFD info #################################################
-
-BEGIN {
-    package Verify;
-
-    sub new {
-      my $proto       = shift;
-      my %params      = @_;
-      my $class       = ref($proto) || $proto;
-      my $self        = {};
-      $self->{SFD}    = $params{'sfd'};
-      $self->{CNT}    = 0;
-      $self->{FUNCS}  = {};
-      $self->{ERRORS} = 0;
-      $self->{WARNS}  = 0;
-      bless ($self, $class);
-      return $self;
-    }
-
-    sub header {
-      my $self      = shift;
-      my $sfd       = $self->{SFD};
-
-      print "Checking SFD for $$sfd{'libname'} ...";
-      $self->{CNT} = 0;
-
-      if ($#{\@{$sfd->{typedefs}}} != -1) {
-          print "\nWarning: SFD uses nonstandard '==typedef' command.";
-          ++$self->{WARNS};
-      }
-    }
-
-    sub function {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      if ($self->{FUNCS}{$prototype->{funcname}}) {
-          if ($prototype->{private}) {
-            print "\nWarning: Private function $prototype->{funcname}() ".
-                "is defined more than once!";
-            ++$self->{WARNS};
-          }
-          else {
-            print "\nError: Public function $prototype->{funcname}() ".
-                "is defined more than once!";
-            ++$self->{ERRORS};
-          }
-      }
-      else {
-          $self->{FUNCS}{$prototype->{funcname}} = 1;
-      }
-
-      ++$self->{CNT};
-    }
-
-    sub footer {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-
-      if ($self->{WARNS} != 0 || $self->{ERRORS} != 0) {
-          print "\n$self->{WARNS} warning(s), $self->{ERRORS} error(s); ";
-
-          die if $self->{ERRORS};
-      }
-      
-      printf " $self->{CNT} function%s verified\n", $self->{CNT} == 1 ? "" : "s";
-    }
-}
-
-### Class StubAROS: Create an AROS stub file ##################################
-
-BEGIN {
-    package StubAROS;
-    use vars qw(@ISA);
-    @ISA = qw( Stub );
-
-    sub new {
-      my $proto  = shift;
-      my $class  = ref($proto) || $proto;
-      my $self   = $class->SUPER::new( @_ );
-      bless ($self, $class);
-      return $self;
-    }
-
-    sub header {
-      my $self = shift;
-      
-      $self->SUPER::header (@_);
-
-      print "#include <aros/libcall.h>\n";
-      print "\n";
-    }
-
-    sub function_start {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      if ($prototype->{type} eq 'function') {
-          print "\n";
-          print "{\n";
-
-          if (!$prototype->{nb}) {
-            print "  BASE_EXT_DECL\n";
-          }
-
-          if (!$prototype->{nr}) {
-            print "  $prototype->{return} _res = ($prototype->{return}) ";
-          }
-          else {
-            print "  ";
-          }
-
-          printf "AROS_LC%d%s($prototype->{return}, $prototype->{funcname},\n",
-          $prototype->{numargs}, $prototype->{nb} ? "I" : "";
-      }
-      else {
-          $self->SUPER::function_start (@_);
-      }
-    }
-
-    sub function_arg {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $argtype   = $params{'argtype'};
-      my $argname   = $params{'argname'};
-      my $argreg    = $params{'argreg'};
-      my $argnum    = $params{'argnum'};
-      my $sfd       = $self->{SFD};
-
-      if ($$prototype{'type'} eq 'function') {
-          print "    AROS_LCA($argtype, $argname, " . (uc $argreg) . "),\n";
-      }
-      else {
-          $self->SUPER::function_arg (@_);
-      }
-    }
-    
-    sub function_end {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-      
-      if ($$prototype{'type'} eq 'function') {
-          if ($prototype->{nb}) {
-            my $bt = "/* bt */";
-            my $bn = "/* bn */";
-
-            for my $i (0 .. $#{$prototype->{regs}}) {
-                if ($prototype->{regs}[$i] eq 'a6') {
-                  $bt = $prototype->{argtypes}[$i];
-                  $bn  =$prototype->{___argnames}[$i];
-                  last;
-                }
-            }
-            
-            printf "    $bt, $bn, %d, $sfd->{Basename});\n",
-            $prototype->{bias} / 6;
-          }
-          else {
-            printf "    $sfd->{basetype}, BASE_NAME, %d, $sfd->{Basename});\n",
-            $prototype->{bias} / 6;
-          }
-
-          if (!$prototype->{nr}) {
-            print "  return _res;\n";
-          }
-          
-          print "};\n";
-      }
-      else {
-          $self->SUPER::function_end (@_);
-      }
-    }
-}
-
-### Class Macro: Create a generic macro file ##################################
-
-# Macros are a bit different than those generated by fd2inline.
-#
-# Tag lists ("stdarg") are always initialized with the first tag value
-# followed by __VA_ARGS__. This generates a compile-time error if no tags
-# are supplied (TAG_DONE is the minimal tag list).
-
-BEGIN {
-    package Macro;
-
-    sub new {
-      my $proto  = shift;
-      my %params = @_;
-      my $class  = ref($proto) || $proto;
-      my $self   = {};
-      $self->{SFD}  = $params{'sfd'};
-      $self->{BASE} = "${$self->{SFD}}{'BASENAME'}_BASE_NAME";
-      $self->{BASE} =~ s/^([0-9])/_$1/;
-      bless ($self, $class);
-      return $self;
-    }
-
-    sub header {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-
-      print "/* Automatically generated header (sfdc 1.11c)! Do not edit! */\n";
-      print "\n";
-      print "#ifndef _INLINE_$$sfd{'BASENAME'}_H\n";
-      print "#define _INLINE_$$sfd{'BASENAME'}_H\n";
-      print "\n";
-      print "#ifndef _SFDC_VARARG_DEFINED\n";
-      print "#define _SFDC_VARARG_DEFINED\n";
-      print "#ifdef __HAVE_IPTR_ATTR__\n";
-      print "typedef APTR _sfdc_vararg __attribute__((iptr));\n";
-      print "#else\n";
-      print "typedef ULONG _sfdc_vararg;\n";
-      print "#endif /* __HAVE_IPTR_ATTR__ */\n";
-      print "#endif /* _SFDC_VARARG_DEFINED */\n";
-      print "\n";
-    }
-
-    sub function {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      # Don't process private functions
-      if ($prototype->{private}) {
-          return;
-      }
-      
-      if ($$prototype{'type'} eq 'varargs') {
-          if ($prototype->{subtype} eq 'tagcall') {
-            print "#ifndef NO_INLINE_STDARG\n";
-          }
-          else {
-            print "#ifndef NO_INLINE_VARARGS\n";
-          }
-      }
-      
-      $self->function_define (prototype => $prototype);
-      $self->function_start (prototype => $prototype);
-      for my $i (0 .. $$prototype{'numargs'} - 1 ) {
-          $self->function_arg (prototype => $prototype,
-                         argtype   => $$prototype{'argtypes'}[$i],
-                         argname   => $$prototype{'___argnames'}[$i],
-                         argreg    => $$prototype{'regs'}[$i],
-                         argnum    => $i );
-      }
-      $self->function_end (prototype => $prototype);
-
-      if ($$prototype{'type'} eq 'varargs') {
-          if ($prototype->{subtype} eq 'tagcall') {
-          print "#endif /* !NO_INLINE_STDARG */\n";
-          }
-          else {
-          print "#endif /* !NO_INLINE_VARARGS */\n";
-          }
-      }
-
-      print "\n";
-    }
-
-    sub footer {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-
-      print "#endif /* !_INLINE_$$sfd{'BASENAME'}_H */\n";
-    }
-
-
-    # Helper functions
-    
-    sub function_define {
-      my $self     = shift;
-      my %params   = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd      = $self->{SFD};
-
-      print "#define $$prototype{'funcname'}(";
-      print join (', ', @{$$prototype{'___argnames'}});
-      print ") \\\n";
-    }
-
-    sub function_start {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-      my $nr        = $$prototype{'return'} =~ /^(VOID|void)$/;
-
-      if ($$prototype{'type'} eq 'varargs') {
-          if ($prototype->{subtype} eq 'tagcall' ||
-            $prototype->{subtype} eq 'methodcall') {
-            my $first_stdargnum = $$prototype{'numargs'} - 2;
-            my $first_stdarg = $$prototype{'___argnames'}[$first_stdargnum];
-          
-            printf "    ({_sfdc_vararg _%s[] = { $first_stdarg, __VA_ARGS__ }; ",
-            $prototype->{subtype} eq 'tagcall' ? "tags" : "message";
-            print "$$prototype{'real_funcname'}(";
-          }
-          else {
-            print "     ({_sfdc_vararg _args[] = { __VA_ARGS__ }; ";
-
-            print "$$prototype{'real_funcname'}(";
-          }
-      }
-      elsif ($prototype->{type} eq 'cfunction') {
-          my $argtypes = join (', ',@{$$prototype{'argtypes'}});
-
-          if ($argtypes eq '') {
-            if ($prototype->{nb}) {
-                $argtypes = "void";
-            }
-          }
-          else {
-            if (!$prototype->{nb}) {
-                $argtypes = "$sfd->{basetype}, $argtypes";
-            }
-          }
-          
-          print " ({$$prototype{'return'} (*_func) ($argtypes) = \\\n";
-          print "     ($$prototype{'return'} (*) ($argtypes))\\\n";
-
-          if ($$classes{'target'} eq 'morphos') {
-            # Skip jmp instruction (is m68k ILLEGAL in MorphOS)
-            my $o = $$prototype{'bias'} - 2;
-            print "         *((ULONG*) (((char*) $self->{BASE}) - $o));\\\n";
-          }
-          elsif ($classes->{target} eq 'aros') {
-            my $o = $$prototype{'bias'} / 6;
-            print "         __AROS_GETVECADDR($self->{BASE}, $o);\\\n";
-          }
-          else {
-            my $o = $$prototype{'bias'};
-            print "         (((char*) $self->{BASE}) - $o);\\\n";
-          }
-
-          print "   (*_func)(";
-
-          if (!$prototype->{nb}) {
-            print "($self->{BASE})";
-            print ", " unless $prototype->{numargs} == 0;
-          }
-      }
-      else {
-          print STDERR "$prototype->{funcname}: Unhandled.\n";
-          die;
-      }
-    }
-
-    sub function_arg {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $argtype   = $params{'argtype'};
-      my $argname   = $params{'argname'};
-      my $argreg    = $params{'argreg'};
-      my $argnum    = $params{'argnum'};
-      my $sfd       = $self->{SFD};
-
-      if ($$classes{'target'} eq 'morphos') {
-    if($argtype eq "va_list") {
-      $argtype = "long *";
-    }
-  }
-
-      if ($$prototype{'type'} eq 'varargs') {
-          if ($prototype->{subtype} eq 'tagcall' ||
-            $prototype->{subtype} eq 'methodcall') {
-            my $first_stdargnum = $$prototype{'numargs'} - 2;
-
-            # Skip the first stdarg completely
-            if( $argnum != $first_stdargnum ) {
-                if ($argname eq '...') {
-                  if ($prototype->{subtype} eq 'tagcall') {
-                      print "($argtype) _tags";
-                  }
-                  else {
-                      print "($argtype) _message";
-                  }
-                }
-                else {
-                  print "($argname), ";
-                }
-            }
-          }
-          else {
-            if ($argname eq '...') {
-                print "($argtype) _args";
-            }
-            else {
-                print "($argname), ";
-            }
-          }
-      }
-      elsif ($prototype->{type} eq 'cfunction') {
-          if ($argname eq '...' ) {
-            print ($argnum != 0 ? ", __VA_ARGS__" : "__VA_ARGS__");
-          }
-          else {
-            print ($argnum != 0 ? ", ($argname)" : "($argname)");
-          }
-      }
-      else {
-          print STDERR "$prototype->{funcname}: Unhandled.\n";
-          die;
-      }
-    }
-    
-    sub function_end {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      
-      print "); })\n";
-    }
-}
-
-### Class MacroAOS4: Create a AOS4-style macro file ###########################
-
-BEGIN {
-    package MacroAOS4;
-    use vars qw(@ISA);
-    @ISA = qw( Macro );
-
-    sub new {
-      my $proto  = shift;
-      my $class  = ref($proto) || $proto;
-      my $self   = $class->SUPER::new( @_ );
-      bless ($self, $class);
-      return $self;
-    }
-
-    sub function_start {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      if ($prototype->{type} eq 'function' ||
-          $prototype->{type} eq 'varargs') {
-          printf "      I$sfd->{BaseName}->$prototype->{funcname}(";
-      }
-      else {
-          $self->SUPER::function_start (@_);
-      }
-    }
-
-    sub function_arg {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $argtype   = $params{'argtype'};
-      my $argname   = $params{'argname'};
-      my $argreg    = $params{'argreg'};
-      my $argnum    = $params{'argnum'};
-      my $sfd       = $self->{SFD};
-
-      if ($prototype->{type} eq 'function' ||
-          $prototype->{type} eq 'varargs') {
-          print ", " unless $argnum == 0;
-          if ($argname ne '...') {
-            print "$argname";
-          }
-          else {
-            print "__VA_ARGS__";
-          }
-      }
-      else {
-          $self->SUPER::function_arg (@_);
-      }
-    }
-    
-    sub function_end {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      
-      if ($prototype->{type} eq 'function' ||
-          $prototype->{type} eq 'varargs') {
-          print ")\n";
-      }
-      else {
-          $self->SUPER::function_end (@_);
-      }
-    }
-}
-
-### Class Proto: Create a proto file ##########################################
-
-BEGIN {
-    package Proto;
+    package AutoOpen;
 
     sub new {
       my $proto    = shift;
@@ -2144,48 +1067,68 @@ BEGIN {
       my $self = shift;
       my $sfd  = $self->{SFD};
 
-      my $base      = $$sfd{'base'};
-      my $basename  = $$sfd{'basename'};
-      my $BASENAME  = $$sfd{'BASENAME'};
-      my $BaseName  = $$sfd{'BaseName'};
-      my $basetype  = $$sfd{'basetype'};
-
-      print "/* Automatically generated header (sfdc 1.11c)! Do not edit! */\n";
+      print "/* Automatically generated header (sfdc 1.12)! Do not edit! */\n";
       print "\n";
-      print "#ifndef PROTO_${BASENAME}_H\n";
-      print "#define PROTO_${BASENAME}_H\n";
-      print "\n";
-      print "#include <clib/${basename}_protos.h>\n";
-      print "\n";
-      print "#ifndef _NO_INLINE\n";
-      print "# if defined(__GNUC__)\n";
-      print "#  ifdef __AROS__\n";
-      print "#   include <defines/${basename}.h>\n";
-      print "#  else\n";
-      print "#   include <inline/${basename}.h>\n";
-      print "#  endif\n";
-      print "# else\n";
-      print "#  include <pragmas/${basename}_pragmas.h>\n";
-      print "# endif\n";
-      print "#endif /* _NO_INLINE */\n";
-      print "\n";
-
-      if ($base ne '') {
-          print "#ifdef __amigaos4__\n";
-          print "# include <interfaces/${basename}.h>\n";
-          print "# ifndef __NOGLOBALIFACE__\n";
-          print "   extern struct ${BaseName}IFace *I${BaseName};\n";
-          print "# endif /* __NOGLOBALIFACE__*/\n";  
-          print "#endif /* !__amigaos4__ */\n";
-          print "#ifndef __NOLIBBASE__\n";
-          print "  extern ${basetype}\n";
-          print "# ifdef __CONSTLIBBASEDECL__\n";
-          print "   __CONSTLIBBASEDECL__\n";
-          print "# endif /* __CONSTLIBBASEDECL__ */\n";
-          print "  ${base};\n";
-          print "#endif /* !__NOLIBBASE__ */\n";
+      if ($sfd->{base} ne '') {
+          print "#ifdef __cplusplus\n";
+          print "extern \"C\" {\n";
+          print "#endif /* __cplusplus */\n";
           print "\n";
+          print "#if defined (__libnix__)\n";
+          print "\n";
+          print "#include <stabs.h>\n";
+          print "void* $sfd->{base}" . "[2] = { 0, \"$sfd->{libname}\" };\n";
+          print "ADD2LIB($sfd->{base});\n";
+          print "\n";
+          print "#elif defined (__AMIGAOS4__)\n";
+          print "\n";
+          print "#undef __USE_INLINE__\n";
+          print "#define _NO_INLINE\n";
+          foreach my $inc (@{$$sfd{'includes'}}) {
+            print "#include $inc\n";
+          }
+          
+          foreach my $td (@{$$sfd{'typedefs'}}) {
+            print "typedef $td;\n";
+          }
+
+          print "\n";
+          print "#include <interfaces/$sfd->{basename}.h>\n";
+          print "#include <proto/exec.h>\n";
+          print "#include <assert.h>\n";
+          print "\n";
+          print "__attribute__((weak)) $sfd->{basetype} $sfd->{base} = NULL;\n";
+          print "__attribute__((weak)) struct $sfd->{BaseName}IFace* I$sfd->{BaseName} = NULL;\n";
+          print "\n";
+          print "void __init_$sfd->{BaseName}(void) __attribute__((constructor));\n";
+          print "void __exit_$sfd->{BaseName}(void) __attribute__((destructor));\n";
+          print "\n";
+          print "void __init_$sfd->{BaseName}(void) {\n";
+          print "  if ($sfd->{base} == NULL) {\n";
+          print "    $sfd->{base} = ($sfd->{basetype}) IExec->OpenLibrary(\"$sfd->{libname}\", 0);\n";
+          print "    assert($sfd->{base} != NULL);\n";
+          print "  }\n";
+          print "  if (I$sfd->{BaseName} == NULL) {\n";
+          print "    I$sfd->{BaseName} = (struct $sfd->{BaseName}IFace*) IExec->GetInterface(";
+          print "(struct Library*) $sfd->{base}, \"main\", 1, NULL);\n";
+          print "    assert(I$sfd->{BaseName} != NULL);\n";
+          print "  }\n";
+          print "}\n";
+          print "\n";
+          print "void __exit_$sfd->{BaseName}(void) {\n";
+          print "  IExec->DropInterface((struct Interface*) I$sfd->{BaseName});\n";
+          print "  IExec->CloseLibrary((struct Library*) $sfd->{base});\n";
+          print "}\n";
+          print "\n";
+          print "\n";
+          print "#endif\n";
       }
+
+      
+      print "\n";
+      print "#ifdef __cplusplus\n";
+      print "}\n";
+      print "#endif /* __cplusplus */\n";
     }
 
     sub function {
@@ -2193,193 +1136,7 @@ BEGIN {
     }
 
     sub footer {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-
-      print "#endif /* !PROTO_$$sfd{'BASENAME'}_H */\n";
-    }
-}
-
-### Class Macro68k: Implements m68k-only features for macro files #############
-
-BEGIN {
-    package MacroVBCC68k;
-    use vars qw(@ISA);
-    @ISA = qw( Macro );
-
-    sub new {
-      my $proto  = shift;
-      my $class  = ref($proto) || $proto;
-      my $self   = $class->SUPER::new( @_ );
-      bless ($self, $class);
-      return $self;
-    }
-    
-    sub function {
-      my $self  = shift;
-      my %params = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-      
-      my $regswap = "";
-      
-      my $function_start = $$prototype{'return'} ." __" . $$prototype{'funcname'} . "(__reg(\"a6\") struct Library * ";
-      my $function = $function_start;
-      
-      if ($$prototype{private})
-      {
-        return;
-      }
-      # Handle VarArgs functions
-      
-      if ($$prototype{'type'} eq 'varargs')
-      {
-        print "#if !defined(NO_INLINE_STDARG) && (__STDC__ == 1L) && (__STDC_VERSION__ >= 199901L)\n";
-        my $stackpush = "";
-        my $stackpop = "";
-        my $last_stdarg = $$prototype{"numargs"} - 2;
-        for(my $arg = 0; $arg < $$prototype{"numargs"}; $arg++)
-        {
-          my $reg = $$prototype{'regs'}[$arg];
-          my $type = $$prototype{'argtypes'}[$arg];
-          $function .= ", ";
-          if(defined $reg && $arg < $last_stdarg)
-          {
-            $function .= "__reg(\"" . $reg . "\") ";
-          }
-          if(defined $reg && $arg == $last_stdarg)
-          {
-            $stackpush = "\\tmove.l\\t" . $reg . ",-(a7)\\n\\tlea\\t4(a7)," . $reg . "\\n";
-            $stackpop = "\\n\\tmovea.l\\t(a7)+," . $reg;
-          }
-          $function .= $$prototype{'args'}[$arg] . " ";
-        }
-        $function .= sprintf ") = \"%s\\tjsr\\t-%ld(a6)%s\";",$stackpush,$$prototype{"bias"},$stackpop;
-        print "$function\n";
-    
-
-        print "#define $$prototype{'funcname'}(";
-        for(my $arg = 0; $arg < $last_stdarg; $arg++)
-        {
-          print $$prototype{'argnames'}[$arg];
-          if ($arg != ($$prototype{"numargs"} - 1))
-          {
-            print ", ";
-          }
-        }
-        print "...) __$$prototype{'funcname'}(" . $sfd->{BaseName} . "Base";
-      
-        for(my $arg = 0; $arg < $last_stdarg; $arg++)
-        {
-          print ", ";
-          print "(" . $$prototype{'argnames'}[$arg] . ")";
-        }
-        print ", __VA_ARGS__)\n";
-      
-        print "#endif\n\n"; 
-        return;
-      }
-      
-            
-      for(my $arg = 0; $arg < $$prototype{"numargs"}; $arg++)
-      {
-        my $reg = $$prototype{'regs'}[$arg];
-        my $type = $$prototype{'argtypes'}[$arg];
-        
-        # make sure registers are in dn/dn format (assumes they either occur in dn-dn or dn/dn depending on inopu sfd file formattng
-        
-        $reg =~ s/-/\//g;
-        
-        # check for some possible 64bit types and fix registers if possible
-        # first verify that it's not pointer the regsister isn;t an adress register and a register pair
-        # isn't already defined.
-        if(($type !~ m/\*/) && ($reg !~ m/^a.*|^d\d\/d\d$/))
-        {
-          # check for common 64 bit types
-          if(($type =~ m/int64/) || ($type =~ m/double/) || ($type =~ m/long\s*long/))
-          {
-            my $regnum = substr $reg, 1;
-            $reg .= "/d" . ($regnum + 1);
-          }
-        }
-        # if a register pair makde sure it's even aligned.
-        if($reg =~ m/^d(\d)\/d\d$/)
-        {
-          my $regnum = $1;
-          if($regnum % 2)
-          {
-            if($regswap ne "")
-            {
-              print STDERR "Can only handle 1 pair of misaligned registers in function " . $$prototype{'funcname'} ."\n";
-              return;
-            }
-            # odd register so we need to do register swap
-            $regnum--;
-            $reg = "d" . ($regnum ) . "/d" . ($regnum + 1);
-            $$prototype{'regs'}[$arg] = $reg;
-            my $found = 0;
-            for(my $i = 0; $i <  $$prototype{"numargs"}; $i++)
-            {
-              if($$prototype{'regs'}[$i] eq "d" . $regnum)
-              {
-                $found = 1;
-                $$prototype{'regs'}[$i] = "d" . ($regnum + 2);
-                last;
-              }
-            }
-            if($found)
-            {
-              # reset the function and start loop again.
-              $function = $function_start;
-              $arg = -1;
-              $regswap = "\\texg\\td" . ($regnum + 1). ",d" . ($regnum + 2) . "\\n\\texg\\td" . ($regnum) . ",d" . ($regnum + 1) . "\\n\\t";
-              next;
-            }
-            else
-            {
-              print STDERR "Unable to wrangle registers for misaligned 64bit arg in function " . $$prototype{'funcname'} ."\n";
-              return;
-            }
-          }
-        }
-        $function .= ", __reg(\"" . $reg . "\") " . $$prototype{'args'}[$arg] . " ";
-      }
-      
-           
-      $function .= sprintf ") = \"%s\\tjsr\\t-%ld(a6)\";",$regswap,$$prototype{"bias"};
-      
-      # check for return type of pointer to function
-      
-      if ($function =~ m/^(.*)\(\*\)\((.*?)\)(.*);$/)
-      {
-        my $type = $1;
-        my $returnfunc = $2;
-        my $func = $3;
-        my ($funcbody,$funcasm) = split("=",$func);
-        print "$type (*$funcbody)($returnfunc) = $funcasm;\n" 
-      }
-      else
-      {
-        print "$function\n";
-      }
-      
-      print "#define $$prototype{'funcname'}(";
-      for(my $arg = 0; $arg < $$prototype{"numargs"}; $arg++)
-      {
-        print $$prototype{'argnames'}[$arg];
-        if ($arg != ($$prototype{"numargs"} - 1))
-        {
-          print ", ";
-        }
-      }
-      print ") __$$prototype{'funcname'}(" . $sfd->{BaseName} . "Base";
-      
-      for(my $arg = 0; $arg < $$prototype{"numargs"}; $arg++)
-      {
-        print ", ";
-        print "(" . $$prototype{'argnames'}[$arg] . ")";
-      }
-      print ")\n\n";
+      # Nothing to do here ...
     }
 }
 
@@ -2410,7 +1167,7 @@ BEGIN {
       $v =~ s/^\$[I]d: .*? ([0-9.]+).*/$1/;
       $d =~ s,^\$[I]d: .*? [0-9.]+ (\d{4})/(\d{2})/(\d{2}).*,($3.$2.$1),;
             
-      print "/* Automatically generated header (sfdc 1.11c)! Do not edit! */\n";
+      print "/* Automatically generated header (sfdc 1.12)! Do not edit! */\n";
       print "\n";
       print "#ifndef CLIB_$$sfd{'BASENAME'}_PROTOS_H\n";
       print "#define CLIB_$$sfd{'BASENAME'}_PROTOS_H\n";
@@ -2504,10 +1261,197 @@ BEGIN {
     }
 }
 
-### Class Interface: Create a struct with function pointers ###################
+### Class Dump: Dump SFD info #################################################
 
 BEGIN {
-    package Interface;
+    package Dump;
+
+    sub new {
+      my $proto    = shift;
+      my %params   = @_;
+      my $class    = ref($proto) || $proto;
+      my $self     = {};
+      $self->{SFD} = $params{'sfd'};
+      bless ($self, $class);
+      return $self;
+    }
+
+    sub header {
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      print "SFD information\n";
+      print "---------------\n";
+      print "Copyright:       $$sfd{'copyright'}\n";
+      print "RCS ID:                $$sfd{'id'}\n";
+      print "Module name:           $$sfd{'libname'}\n";
+      print "Module base:           $$sfd{'base'}\n";
+      print "Module base type:      $$sfd{'basetype'}\n";
+      print "Module base names:     $$sfd{'basename'}, $$sfd{'BASENAME'}, ";
+      print "$$sfd{'Basename'}\n";
+      print "\n";
+      print "Include files:         ";
+      print join ("\n               ", @{$$sfd{'includes'}});
+      print "\n";
+      print "Type definitions:            ";
+      if ($#{\@{$sfd->{typedefs}}} != -1) {
+          print join ("\n                 ", @{$$sfd{'typedefs'}});
+      }
+      print "\n";
+      print "\n";
+    }
+
+    sub function {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      print "* Line $$prototype{'line'}: $$prototype{'funcname'}()\n";
+      print "     Type:             " . ucfirst $$prototype{'type'} . "\n";
+      print "     Subtype:          $prototype->{subtype}\n";
+      if ($prototype->{real_funcname} ne '') {
+          print " Real function name:\t$$prototype{'real_funcname'}\n";
+      }
+      print "     Visibility:       ";
+      print $$prototype{'private'} == 0 ? "Public\n" : "Private\n";
+      print "     Library offset/bias:    -$$prototype{'bias'}\n";
+      print "     Available since:  V$$prototype{'version'}\n";
+      print "     Comment:          $$prototype{'comment'}\n";
+      print "\n";
+      print "     No return:        ";
+      print $prototype->{nr} ? "Yes\n" : "No\n";
+      print "     No base:          ";
+      print $prototype->{nb} ? "Yes\n" : "No\n";
+      print "\n";
+      print "     Return value:           $$prototype{'return'}\n";
+      print "     Arguments:        ";
+      print join (",\n\t\t\t\t", @{$$prototype{'args'}});
+      print "\n";
+      print "     Argument names:         ";
+      print join (", ", @{$$prototype{'argnames'}});
+      print "\n";
+      print "     Local arguments:  ";
+      print join (",\n\t\t\t\t", @{$$prototype{'___args'}});
+      print "\n";
+      print "     Local argument names:   ";
+      print join (", ", @{$$prototype{'___argnames'}});
+      print "\n";
+      print "     Argument types:         ";
+      print join (",\n\t\t\t\t", @{$$prototype{'argtypes'}});
+      print "\n";
+
+      print "\n";
+
+#           value   => $proto_line,
+
+#    $$prototype{'return'}     = $return;
+#    $$prototype{'funcname'}   = $name;
+#    @{$$prototype{'args'}}     = ();
+#    @{$$prototype{'regs'}} = split(/,/,lc $registers);  # Make regs lower case
+#    @{$$prototype{'argnames'}} = ();                    # Initialize array
+#    @{$$prototype{'argtypes'}} = ();                    # Initialize array
+    }
+
+    sub footer {
+      print "\n";
+    }
+}
+
+### Class FD: Create an old-style FD file #####################################
+
+BEGIN {
+    package FD;
+
+    sub new {
+      my $proto  = shift;
+      my %params = @_;
+      my $class  = ref($proto) || $proto;
+      my $self   = {};
+      $self->{SFD}     = $params{'sfd'};
+      $self->{BIAS}    = -1;
+      $self->{PRIVATE} = -1;
+      $self->{VERSION} = 1;
+      bless ($self, $class);
+      return $self;
+    }
+
+    sub header {
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      print "* \"$$sfd{'libname'}\"\n";
+      print "* Automatically generated FD (sfdc 1.12)! Do not edit!\n";
+      print "##base _$$sfd{'base'}\n";
+      $self->{BIAS}    = -1;
+      $self->{PRIVATE} = -1;
+      $self->{VERSION} = 1;
+    }
+
+    sub function {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      if ($prototype->{type} eq 'function' ||
+          $prototype->{type} eq 'cfunction') {
+          if ($self->{BIAS} != $$prototype{'bias'}) {
+            $self->{BIAS} = $$prototype{'bias'};
+            print "##bias $self->{BIAS}\n";
+          }
+
+          if ($self->{PRIVATE} != $$prototype{'private'}) {
+            $self->{PRIVATE} = $$prototype{'private'};
+            print $self->{PRIVATE} == 1 ? "##private\n" : "##public\n";
+          }
+
+          if ($self->{VERSION} != $$prototype{'version'}) {
+            $self->{VERSION} = $$prototype{'version'};
+
+            print "*--- functions in V$self->{VERSION} or higher ---\n";
+          }
+
+          if ($$prototype{'comment'} ne '') {
+            my $comment = $$prototype{'comment'};
+
+            $comment =~ s/^/\*/m;
+            
+            print "$comment\n";
+          }
+          
+          print "$$prototype{'funcname'}(";
+          print join (',', @{$$prototype{'argnames'}});
+          print ")(";
+
+          if ($prototype->{type} eq 'function') {
+            print join (',', @{$$prototype{'regs'}});
+          }
+          elsif ($prototype->{type} eq 'cfunction') {
+            print "base," unless $prototype->{nb};
+            print "$prototype->{subtype}";
+          }
+          else {
+            die;
+          }
+          
+          print ")\n";
+      
+          $self->{BIAS} += 6;
+      }
+    }
+    
+    sub footer {
+      my $self = shift;
+
+      print "##end\n";
+    }
+}
+
+### Class FuncTable: Create a function table fragment #########################
+
+BEGIN {
+    package FuncTable;
 
     sub new {
       my $proto  = shift;
@@ -2515,8 +1459,6 @@ BEGIN {
       my $class  = ref($proto) || $proto;
       my $self   = {};
       $self->{SFD} = $params{'sfd'};
-      $self->{BIAS} = -1;
-      $self->{PADCNT} = 1;
       bless ($self, $class);
       return $self;
     }
@@ -2525,287 +1467,36 @@ BEGIN {
       my $self = shift;
       my $sfd  = $self->{SFD};
 
-      print "/* Automatically generated function table (sfdc 1.11c)! Do not edit! */\n";
+      print "/* Automatically generated function table (sfdc 1.12)! Do not edit! */\n";
       print "\n";
-      print "#ifndef $sfd->{'BASENAME'}_INTERFACE_DEF_H\n";
-      print "#define $sfd->{'BASENAME'}_INTERFACE_DEF_H\n";
-      print "\n";
-
-      foreach my $inc (@{$$sfd{'includes'}}) {
-          print "#include $inc\n";
-      }
-
-      foreach my $td (@{$$sfd{'typedefs'}}) {
-          print "typedef $td;\n";
-      }
-
-      print "\n";
-      $self->define_interface_data();
-      print "\n";
-
-      print "struct $sfd->{BaseName}IFace\n";
-      print "{\n";
-
-      $self->output_prelude();
+      print "#ifdef __SFDC_FUNCTABLE_M68K__\n";
+      print "# define _sfdc_func(f) &m68k ## f\n";
+      print "#else\n";
+      print "# define _sfdc_func(f) f\n";
+      print "#endif\n";
     }
 
     sub function {
       my $self      = shift;
-      my $sfd       = $self->{SFD};
       my %params    = @_;
       my $prototype = $params{'prototype'};
 
-      if ($self->{BIAS} == -1) {
-          $self->{BIAS} = $prototype->{bias} - 6;
+      if ($prototype->{bias} == 0) {
+          return;
       }
 
-      while ($self->{BIAS} < ($prototype->{bias} - 6)) {
-          print "  APTR Pad$self->{PADCNT};\n";
-          $self->{BIAS} += 6;
-          ++$self->{PADCNT};
+      if ($prototype->{type} eq 'function' ||
+          $prototype->{type} eq 'cfunction') {
+          print "  (CONST_APTR) _sfdc_func($gateprefix$prototype->{funcname}),\n";
       }
-
-      $self->{BIAS} = $prototype->{bias};
-
-      $self->output_function(@_);
     }
     
     sub footer {
       my $self = shift;
       my $sfd  = $self->{SFD};
 
-      print "};\n";
+      print "#undef _sfdc_func\n";
       print "\n";
-      print "#endif /* $sfd->{'BASENAME'}_INTERFACE_DEF_H */\n";
-    }
-
-
-    # Helper functions
-    
-    sub define_interface_data {
-      my $self     = shift;
-      my $sfd      = $self->{SFD};
-
-      print "struct $sfd->{BaseName}InterfaceData {\n";
-      print "  $sfd->{basetype} LibBase;\n";
-      print "};\n";
-    }
-
-
-    sub output_prelude {
-      my $self     = shift;
-      my $sfd      = $self->{SFD};
-
-      print "  struct $sfd->{BaseName}InterfaceData Data;\n";
-      print "\n";
-      print "  static struct $sfd->{BaseName}IFace* CreateIFace($sfd->{basetype} _$sfd->{base}) {\n";
-      print "    struct $sfd->{BaseName}IFace* _iface = new struct $sfd->{BaseName}IFace();\n";
-      print "    _iface->Data.LibBase = _$sfd->{base};\n";
-      print "    return _iface;\n";
-      print "  }\n";
-      print "\n";
-      print "  static void DestroyIFace(struct $sfd->{BaseName}IFace* _iface) {\n";
-      print "    delete _iface;\n";
-      print "  }\n";
-      print "\n";
-    }
-
-    sub output_function {
-      my $self     = shift;
-      my $sfd      = $self->{SFD};
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-
-      print "  $prototype->{return} ";
-      print "$prototype->{funcname}(";
-      print join (', ', @{$prototype->{args}});
-      print ");\n";
-    }
-}
-
-### Class MacroMOS: Implements MorphOS-only features for macro files ##########
-
-BEGIN {
-    package MacroMOS;
-    use vars qw(@ISA);
-    @ISA = qw (Macro68k);
-
-    sub new {
-      my $proto  = shift;
-      my $class  = ref($proto) || $proto;
-      my $self   = $class->SUPER::new( @_ );
-      bless ($self, $class);
-      return $self;
-    }
-
-    sub header {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-
-      print "/* Automatically generated header (sfdc 1.11c)! Do not edit! */\n";
-      print "\n";
-      print "#ifndef _PPCINLINE_$$sfd{'BASENAME'}_H\n";
-      print "#define _PPCINLINE_$$sfd{'BASENAME'}_H\n";
-      print "\n";
-      print "#ifndef _SFDC_VARARG_DEFINED\n";
-      print "#define _SFDC_VARARG_DEFINED\n";
-      print "#ifdef __HAVE_IPTR_ATTR__\n";
-      print "typedef APTR _sfdc_vararg __attribute__((iptr));\n";
-      print "#else\n";
-      print "typedef ULONG _sfdc_vararg;\n";
-      print "#endif /* __HAVE_IPTR_ATTR__ */\n";
-      print "#endif /* _SFDC_VARARG_DEFINED */\n";
-      print "\n";
- 
-      print "#ifndef __PPCINLINE_MACROS_H\n";
-      print "#include <ppcinline/macros.h>\n";
-      print "#endif /* !__PPCINLINE_MACROS_H */\n";
-      print "\n";
-
-      if ($$sfd{'base'} ne '') {
-          print "#ifndef $self->{BASE}\n";
-          print "#define $self->{BASE} $$sfd{'base'}\n";
-          print "#endif /* !$self->{BASE} */\n";
-          print "\n";
-      }
-    }
-
-    sub footer {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-
-      print "#endif /* !_PPCINLINE_$$sfd{'BASENAME'}_H */\n";
-    }
-
-    sub function_start {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      if ($$prototype{'type'} eq 'function') {
-
-          my $regs      = join(',', @{$$prototype{'regs'}});
-          my $argtypes  = join(',', @{$$prototype{'argtypes'}});
-          my $fp        = $argtypes =~ /\(\*+\)/;
-      my $return    = $$prototype{'return'};
-      my $numfp     = 0;
-
-      @{$self->{FUNCARGTYPE}} = ();
-          for my $argtype (@{$$prototype{'argtypes'}}) {
-            if ($argtype =~ /\(\*+\)/) {
-                @{$self->{FUNCARGTYPE}}[$numfp] = $argtype;
-        $numfp++;
-            }
-          }
-
-      $self->{FUNCRETTYPE} = '';
-      if($return =~ /\(\*+\)/)
-      {
-        $self->{FUNCRETTYPE} = $return;
-      }
-          
-          printf "      LP%d%s%s%s%s%s(0x%x, ", $$prototype{'numargs'},
-          $prototype->{nr} ? "NR" : "",
-          $prototype->{nb} ? "NB" : "",
-          scalar @{$self->{FUNCARGTYPE}} > 0 ? "FP" : "",
-          scalar @{$self->{FUNCARGTYPE}} > 1 ? scalar @{$self->{FUNCARGTYPE}} : "",
-      $self->{FUNCRETTYPE} ne '' ? "FR" : "",
-          $$prototype{'bias'};
-
-      if ($self->{FUNCRETTYPE})
-      {
-        print "__fpr, "; 
-      }
-          elsif (!$prototype->{nr}) {
-            print "$$prototype{'return'}, ";
-          }
-
-          print "$$prototype{'funcname'} ";
-      }
-      else {
-          $self->SUPER::function_start (@_);
-      }
-    }
-
-    sub function_arg {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-
-      if ($$prototype{'type'} eq 'function') {
-          my $argtype   = $params{'argtype'};
-          my $argname   = $params{'argname'};
-          my $argreg    = $params{'argreg'};
-      my $fpidx     = 0;
-      my $fpfound   = 0;
-          
-          if ($argreg eq 'a4' || $argreg eq 'a5') {
-            $argreg = 'd7';
-          }
-          
-      for my $atype (@{$self->{FUNCARGTYPE}}) {
-        $fpidx++;
-        if ($atype eq $argtype) {
-          printf ", __fpt%s, %s, %s",
-            scalar @{$self->{FUNCARGTYPE}} > 1 ? $fpidx : "",
-            $argname, $argreg;
-          $fpfound = 1;
-          last;
-                }
-      }
-
-          if($fpfound eq 0) {
-        if($argtype eq "va_list") {
-          print ", long *, $argname, $argreg";
-        } else {
-          print ", $argtype, $argname, $argreg";
-        }
-          }
-      }
-        else {
-          $self->SUPER::function_arg (@_);
-      }
-    }
-
-
-    sub function_end {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-  my $fpidx     = 0;
-
-      if ($$prototype{'type'} eq 'function') {
-          if (!$prototype->{nb}) {
-            print ",\\\n      , $self->{BASE}";
-          }
-
-      for my $fa (@{$self->{FUNCARGTYPE}}) {
-        $fpidx++;
-        if(scalar @{$self->{FUNCARGTYPE}} gt 1) {
-                  $fa =~ s/\((\*+)\)/($1__fpt$fpidx)/;
-        }
-        else {
-                  $fa =~ s/\((\*+)\)/($1__fpt)/;
-        }
-                print ", $fa";
-      }
-
-      if ($self->{FUNCRETTYPE} ne '')
-      {
-        my $fr = $self->{FUNCRETTYPE};
-
-        $fr =~ s/\((\*+)\)/($1__fpr)/;
-
-        print ", $fr";
-      }
-          
-          print ", 0, 0, 0, 0, 0, 0)\n";
-      }
-      else {
-          $self->SUPER::function_end (@_);
-      }
     }
 }
 
@@ -2831,19 +1522,19 @@ BEGIN {
       my $sfd  = $self->{SFD};
 
       if ($self->{PROTO}) {
-          print "/* Automatically generated header (sfdc 1.11c)! Do not edit! */\n";
+          print "/* Automatically generated header (sfdc 1.12)! Do not edit! */\n";
           print "\n";
           print "#ifndef _GATEPROTO_$$sfd{'BASENAME'}_H\n";
           print "#define _GATEPROTO_$$sfd{'BASENAME'}_H\n";
       }
       elsif ($self->{LIBPROTO}) {
-          print "/* Automatically generated header (sfdc 1.11c)! Do not edit! */\n";
+          print "/* Automatically generated header (sfdc 1.12)! Do not edit! */\n";
           print "\n";
           print "#ifndef _LIBPROTO_$$sfd{'BASENAME'}_H\n";
           print "#define _LIBPROTO_$$sfd{'BASENAME'}_H\n";
       }
       else {
-          print "/* Automatically generated gatestubs (sfdc 1.11c)! Do not edit! */\n";
+          print "/* Automatically generated gatestubs (sfdc 1.12)! Do not edit! */\n";
       }
       print "\n";
 
@@ -3080,88 +1771,10 @@ BEGIN {
     }
 }
 
-### Class Interface: Create a struct with function pointers ###################
+### Class Gate68k: Create a AmigaOS gatestub file #############################
 
 BEGIN {
-    package InterfaceAOS4;
-    use vars qw(@ISA);
-    @ISA = qw( Interface );
-
-    sub new {
-      my $proto  = shift;
-      my $class  = ref($proto) || $proto;
-      my $self   = $class->SUPER::new( @_ );
-      bless ($self, $class);
-      return $self;
-    }
-
-    # Helper functions
-    
-    sub define_interface_data {
-      my $self     = shift;
-      my $sfd      = $self->{SFD};
-
-      print "#include <exec/interfaces.h>\n";
-    }
-
-
-    sub output_prelude {
-      my $self     = shift;
-      my $sfd      = $self->{SFD};
-
-      print "  struct InterfaceData Data;\n";
-      print "\n";
-      print "#ifdef __cplusplus\n";
-      print "  static struct $sfd->{BaseName}IFace* CreateIFace($sfd->{basetype} _$sfd->{base}) {\n";
-      print "    return (struct $sfd->{BaseName}IFace*) GetInterface((struct Library*) _$sfd->{base}, \"main\", 1, NULL);\n";
-      print "  }\n";
-      print "\n";
-      print "  static void DestroyIFace(struct $sfd->{BaseName}IFace* _iface) {\n";
-      print "      DropInterface((struct Interface*) _iface);\n";
-      print "  }\n";
-      print "#endif\n";
-      print "\n";
-      print "  ULONG APICALL (*Obtain)(struct $sfd->{BaseName}IFace *Self);\n";
-      print "  ULONG APICALL (*Release)(struct $sfd->{BaseName}IFace *Self);\n";
-      print "  void APICALL (*Expunge)(struct $sfd->{BaseName}IFace *Self);\n";
-      print "  struct Interface * APICALL (*Clone)(struct $sfd->{BaseName}IFace *Self);\n";
-    }
-
-    sub output_function {
-      my $self     = shift;
-      my $sfd      = $self->{SFD};
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-
-      print "  $prototype->{return} APICALL ";
-      print "(*$prototype->{funcname})(struct $sfd->{BaseName}IFace* Self";
-
-      if ($prototype->{type} eq 'varargs' &&
-          ($prototype->{subtype} eq 'tagcall' ||
-           $prototype->{subtype} eq 'methodcall')) {
-          # Nuke second last argument (=first varargs argument) 
-          # or it will be placed in a register!
-          for my $i (0 .. $#{@{$prototype->{args}}}) {
-            if ($i != $prototype->{numargs} - 2 ) {
-                print ", $prototype->{args}[$i]";
-          }
-      }
-          
-      }
-      else {
-          if ($prototype->{numargs} != 0) {
-            print ", ";
-          }
-          print join (', ', @{$prototype->{args}});
-      }
-      print ");\n";
-    }
-}
-
-### Class GateMOS: Create a MorphOS gatestub file #############################
-
-BEGIN {
-    package GateMOS;
+    package Gate68k;
     use vars qw(@ISA);
     @ISA = qw( Gate );
 
@@ -3173,130 +1786,69 @@ BEGIN {
       return $self;
     }
 
-    sub header {
-      my $self = shift;
-      
-      $self->SUPER::header (@_);
-
-      if ($sdi eq 0) {
-        print "#include <emul/emulregs.h>\n\n";
-        print "int $gateprefix" . "UNIMPLEMENTED(void)";
-      }
-      else {
-        print "#include <SDI_lib.h>\n\n";
-        print "LIBSTUB(UNIMPLEMENTED, int)";
-      }
-
-      if ($self->{PROTO}) {
-        print ";";
-      }
-      else {
-        print "\n";
-        print "{\n";
-        print "  // nothing\n";
-        print "  return 0;\n";
-        print "}\n";
-      }
-      print "\n";
-    }
-
     sub function_start {
       my $self      = shift;
       my %params    = @_;
       my $prototype = $params{'prototype'};
       my $sfd       = $self->{SFD};
 
-      my $rettype_prefix = $prototype->{return};
-      my $rettype_postfix = "";
-      if ($prototype->{return} =~ /(.*\(\*+)(\).*)/) {
-        $rettype_prefix = $1;
-        $rettype_postfix = $2;
-      }
-
-      if ($sdi eq 0) {
-        print "$rettype_prefix ";
-        print "$gateprefix$prototype->{funcname}(void)$rettype_postfix";
-        
-      }
-      else {
-        if ($prototype->{return} =~ /\(\*+\)/) {
-          print "LIBSTUB($prototype->{funcname}, void *)";
-        }
-        else {
-          print "LIBSTUB($prototype->{funcname}, $prototype->{return})";
-        }
-      }
-
-      if ($self->{PROTO}) {
-        print ";";
-      }
-      else {
-        print "\n";
-        print "{\n";
-        if ($sdi ne 0) {
-          print "  __BASE_OR_IFACE = (__BASE_OR_IFACE_TYPE)REG_A6;\n";
-          print "  return CALL_LFUNC($prototype->{funcname}";
-        }
-      }
+      print "$prototype->{return}\n";
+      print "$gateprefix$prototype->{funcname}(";
     }
 
     sub function_arg {
       my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $argtype   = $params{'argtype'};
+      my $argname   = $params{'argname'};
+      my $argreg    = $params{'argreg'};
+      my $argnum    = $params{'argnum'};
+      my $sfd       = $self->{SFD};
 
-      if (!$self->{PROTO}) {
-          my %params    = @_;
-          my $prototype = $params{'prototype'};
-          my $argtype   = $params{'argtype'};
-          my $argname   = $params{'argname'};
-          my $argreg    = $params{'argreg'};
-          my $argnum    = $params{'argnum'};
-          my $sfd       = $self->{SFD};
-
-          if($argtype eq "va_list") {
-            $argtype = "long *";
-          }
-
-          my $argdef = $argtype . " " . $argname;
-          if ($argtype =~ /\(\*+\)/) {
-            $argdef = $argtype;
-            $argdef =~ s/\(\*+\)/\(\*$argname\)/g;
-          }
-
-          if ($sdi eq 0) {
-            print "  $argdef = ($argtype)REG_" . (uc $argreg) . ";\n";
-          }
-          else {
-            print ", ($argtype)REG_" . (uc $argreg);
-          }
+      if ($argnum != 0) {
+          print ",\n";
       }
+
+      print "     $prototype->{___args}[$argnum] __asm(\"$argreg\")";
     }
     
     sub function_end {
       my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
 
-      if (!$self->{PROTO}) {
-          my %params    = @_;
-          my $prototype = $params{'prototype'};
-          my $sfd       = $self->{SFD};
+      if ($libarg ne 'none' && !$prototype->{nb}) {
+          if ($prototype->{numargs} > 0 ) {
+            print ",\n";
+          }
 
-          if ($sdi eq 0) {
-            if ($libarg ne 'none' && !$prototype->{nb}) {
-              print "  $sfd->{basetype} _base = ($sfd->{basetype})"."REG_A6;\n";
-            }
-            
-            print "  return $libprefix$prototype->{funcname}(";
+          print " $sfd->{basetype} _base __asm(\"a6\")";
+      }
+      elsif ($prototype->{numargs} == 0) {
+          print "void";
+      }
 
-            if ($libarg eq 'first' && !$prototype->{nb}) {
-              print "_base";
-              print $prototype->{numargs} > 0 ? ", " : "";
-            }
+      if ($self->{PROTO}) {
+          print ");\n";
+      }
+      else {
+          print ")\n";
+          print "{\n";
 
-            print join (', ', @{$prototype->{___argnames}});
-      
-            if ($libarg eq 'last' && !$prototype->{nb}) {
-              print $prototype->{numargs} > 0 ? ", " : "";
-              print "_base";
-            }
+          print "  return $libprefix$prototype->{funcname}(";
+
+          if ($libarg eq 'first' && !$prototype->{nb}) {
+            print "_base";
+            print $prototype->{numargs} > 0 ? ", " : "";
+          }
+
+          print join (', ', @{$prototype->{___argnames}});
+
+          if ($libarg eq 'last' && !$prototype->{nb}) {
+            print $prototype->{numargs} > 0 ? ", " : "";
+            print "_base";
           }
       
           print ");\n";
@@ -3643,64 +2195,12 @@ BEGIN {
     }
 }
 
-### Class FuncTable: Create a function table fragment #########################
+### Class GateAROS: Create an AROS gatestub file ##############################
 
 BEGIN {
-    package FuncTable;
-
-    sub new {
-      my $proto  = shift;
-      my %params = @_;
-      my $class  = ref($proto) || $proto;
-      my $self   = {};
-      $self->{SFD} = $params{'sfd'};
-      bless ($self, $class);
-      return $self;
-    }
-
-    sub header {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-
-      print "/* Automatically generated function table (sfdc 1.11c)! Do not edit! */\n";
-      print "\n";
-      print "#ifdef __SFDC_FUNCTABLE_M68K__\n";
-      print "# define _sfdc_func(f) &m68k ## f\n";
-      print "#else\n";
-      print "# define _sfdc_func(f) f\n";
-      print "#endif\n";
-    }
-
-    sub function {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-
-      if ($prototype->{bias} == 0) {
-          return;
-      }
-
-      if ($prototype->{type} eq 'function' ||
-          $prototype->{type} eq 'cfunction') {
-          print "  (CONST_APTR) _sfdc_func($gateprefix$prototype->{funcname}),\n";
-      }
-    }
-    
-    sub footer {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-
-      print "#undef _sfdc_func\n";
-      print "\n";
-    }
-}
-
-### Class MacroAROS: Implements AROS macro files ##############################
-
-BEGIN {
-    package MacroAROS;
+    package GateAROS;
     use vars qw(@ISA);
-    @ISA = qw( Macro );
+    @ISA = qw( Gate );
 
     sub new {
       my $proto  = shift;
@@ -3713,284 +2213,11 @@ BEGIN {
     sub header {
       my $self = shift;
       my $sfd  = $self->{SFD};
-
+      
       $self->SUPER::header (@_);
-      
-      print "#ifndef AROS_LIBCALL_H\n";
+
       print "#include <aros/libcall.h>\n";
-      print "#endif /* !AROS_LIBCALL_H */\n";
       print "\n";
-
-      if ($$sfd{'base'} ne '') {
-          print "#ifndef $self->{BASE}\n";
-          print "#define $self->{BASE} $$sfd{'base'}\n";
-          print "#endif /* !$self->{BASE} */\n";
-          print "\n";
-      }
-    }
-
-    sub function_start {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      if ($$prototype{'type'} eq 'function') {
-          printf "      AROS_LC%d%s(%s, %s, \\\n",
-          $$prototype{'numargs'}, $prototype->{nb} ? "I" : "",
-          $$prototype{'return'}, $$prototype{'funcname'};
-      }
-      else {
-          $self->SUPER::function_start (@_);
-      }
-    }
-
-
-    sub function_arg {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-
-      if ($$prototype{'type'} eq 'function') {
-          my $argtype   = $params{'argtype'};
-          my $argname   = $params{'argname'};
-          my $argreg    = $params{'argreg'};
-          
-          print " AROS_LCA($argtype, ($argname), " . uc $argreg . "), \\\n";
-      }
-        else {
-          $self->SUPER::function_arg (@_);
-      }
-    }
-
-    sub function_end {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      if ($$prototype{'type'} eq 'function') {
-          if( !$prototype->{nb}) {
-            print "     $$sfd{'basetype'}, $self->{BASE}, ";
-          }
-          else {
-            my $bt = "/* bt */";
-            my $bn = "/* bn */";
-
-            for my $i (0 .. $#{$prototype->{regs}}) {
-                if ($prototype->{regs}[$i] eq 'a6') {
-                  $bt = $prototype->{argtypes}[$i];
-                  $bn  =$prototype->{___argnames}[$i];
-                  last;
-                }
-            }
-            
-            print "     $bt, $bn, ";
-          }
-          
-          print $$prototype{'bias'} / 6;
-          print ", $sfd->{Basename})\n";
-      }
-      else {
-          $self->SUPER::function_end (@_);
-      }
-    }
-}
-
-### Class SASPragmas: Create a SAS/C pragmas file #############################
-
-BEGIN {
-    package SASPragmas;
-
-    sub new {
-      my $proto  = shift;
-      my %params = @_;
-      my $class  = ref($proto) || $proto;
-      my $self   = {};
-      $self->{SFD} = $params{'sfd'};
-      bless ($self, $class);
-      return $self;
-    }
-
-    sub header {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-
-      my $id = $$sfd{'id'};
-      my $v  = $id;
-      my $d  = $id;
-
-      $v =~ s/^\$[I]d: .*? ([0-9.]+).*/$1/;
-      $d =~ s,^\$[I]d: .*? [0-9.]+ (\d{4})/(\d{2})/(\d{2}).*,($3.$2.$1),;
-
-      print "/* Automatically generated header (sfdc 1.11c)! Do not edit! */\n";
-      print "#ifndef PRAGMAS_$sfd->{BASENAME}_PRAGMAS_H\n";
-      print "#define PRAGMAS_$sfd->{BASENAME}_PRAGMAS_H\n";
-      print "\n";
-      print "/*\n";
-      print "**   \$VER: $$sfd{'basename'}_pragmas.h $v $d\n";
-      print "**\n";
-      print "**   Direct ROM interface (pragma) definitions.\n";
-      print "**\n";
-      print "**   $$sfd{'copyright'}\n";
-      print "**       All Rights Reserved\n";
-      print "*/\n";
-      print "\n";
-
-      print "#if defined(LATTICE) || defined(__SASC) || defined(_DCC)\n";
-      print "#ifndef __CLIB_PRAGMA_LIBCALL\n";
-      print "#define __CLIB_PRAGMA_LIBCALL\n";
-      print "#endif /* __CLIB_PRAGMA_LIBCALL */\n";
-      print "#else /* __MAXON__, __STORM__ or AZTEC_C */\n";
-      print "#ifndef __CLIB_PRAGMA_AMICALL\n";
-      print "#define __CLIB_PRAGMA_AMICALL\n";
-      print "#endif /* __CLIB_PRAGMA_AMICALL */\n";
-      print "#endif /* */\n";
-      print "\n";
-      print "#if defined(__SASC_60) || defined(__STORM__)\n";
-      print "#ifndef __CLIB_PRAGMA_TAGCALL\n";
-      print "#define __CLIB_PRAGMA_TAGCALL\n";
-      print "#endif /* __CLIB_PRAGMA_TAGCALL */\n";
-      print "#endif /* __MAXON__, __STORM__ or AZTEC_C */\n";
-      print "\n";
-    }
-
-    sub function {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      # Don't process private functions
-      if ($prototype->{private}) {
-          return;
-      }
-
-      my $regs = '';
-      
-      foreach my $reg (@{$prototype->{regs}}) {
-          my $num;
-          
-          if ($reg =~ /^d[0-7]$/) {
-            ($num) = $reg =~ /^d(.)/;
-          }
-          elsif ($reg =~ /^a[0-9]$/) {
-            ($num) = $reg =~ /^a(.)/;
-            $num += 8;
-          }
-          else {
-            die;
-          }
-
-          $regs = sprintf "%x$regs", $num;
-      }
-
-      $regs .= '0'; #Result in d0
-      $regs .= $prototype->{numregs};
-      
-      if ($prototype->{type} eq 'function') {
-          # Always use libcall, since access to 4 is very expensive
-
-          print "#ifdef __CLIB_PRAGMA_LIBCALL\n";
-          print " #pragma libcall $sfd->{base} $prototype->{funcname} ";
-          printf "%x $regs\n", $prototype->{bias};
-          print "#endif /* __CLIB_PRAGMA_LIBCALL */\n";
-          print "#ifdef __CLIB_PRAGMA_AMICALL\n";
-          printf " #pragma amicall($sfd->{base}, 0x%x, $prototype->{funcname}(",
-            $prototype->{bias};
-          print join (',', @{$prototype->{regs}}) . "))\n";
-          print "#endif /* __CLIB_PRAGMA_AMICALL */\n";
-      }
-      elsif ($prototype->{type} eq 'varargs') {
-          print "#ifdef __CLIB_PRAGMA_TAGCALL\n";
-          print " #ifdef __CLIB_PRAGMA_LIBCALL\n";
-          print "  #pragma tagcall $sfd->{base} $prototype->{funcname} ";
-          printf "%x $regs\n", $prototype->{bias};
-          print " #endif /* __CLIB_PRAGMA_LIBCALL */\n";
-          print " #ifdef __CLIB_PRAGMA_AMICALL\n";
-          printf "  #pragma tagcall($sfd->{base}, 0x%x, $prototype->{funcname}(",
-            $prototype->{bias};
-          print join (',', @{$prototype->{regs}}) . "))\n";
-          print " #endif /* __CLIB_PRAGMA_AMICALL */\n";
-          print "#endif /* __CLIB_PRAGMA_TAGCALL */\n";
-      }
-      elsif ($prototype->{type} eq 'cfunction') {
-          # Do nothing
-      }
-      else {
-          print STDERR "$prototype->{funcname}: Unsupported function " .
-            "type.\n";
-          die;
-      }
-    }
-    
-    sub footer {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-
-      print "\n";
-      print "#endif /* PRAGMAS_$sfd->{BASENAME}_PRAGMAS_H */\n";
-    }
-}
-
-### Class Stub: Create a generic stub file ####################################
-
-BEGIN {
-    package Stub;
-
-    sub new {
-      my $proto  = shift;
-      my %params = @_;
-      my $class  = ref($proto) || $proto;
-      my $self   = {};
-      $self->{SFD}     = $params{'sfd'};
-      $self->{NEWFILE} = 0;
-      bless ($self, $class);
-      return $self;
-    }
-
-    sub header {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-
-      $self->{NEWFILE} = 1;
-
-      print "/* Automatically generated stubs (sfdc 1.11c)! Do not edit! */\n";
-      print "\n";
-
-      foreach my $inc (@{$$sfd{'includes'}}) {
-          print "#include $inc\n";
-      }
-
-      foreach my $td (@{$$sfd{'typedefs'}}) {
-          print "typedef $td;\n";
-      }
-
-      print "\n";
-      print "#ifdef __cplusplus\n";
-      print "extern \"C\" {\n";
-      print "#endif /* __cplusplus */\n";
-      print "\n";
-
-      if ($$sfd{'base'} ne '') { 
-          print "#ifndef BASE_EXT_DECL\n";
-          print "#define BASE_EXT_DECL\n";
-          print "#define BASE_EXT_DECL0 extern $$sfd{'basetype'} " .
-            "$$sfd{'base'};\n";
-          print "#endif /* !BASE_EXT_DECL */\n";
-          print "#ifndef BASE_PAR_DECL\n";
-          print "#define BASE_PAR_NAME\n";
-          print "#define BASE_PAR_DECL\n";
-          print "#define BASE_PAR_DECL0 void\n";
-          print "#endif /* !BASE_PAR_DECL */\n";
-          print "#ifndef BASE_NAME\n";
-          print "#define BASE_NAME $$sfd{'base'}\n";
-          print "#endif /* !BASE_NAME */\n";
-          print "\n";
-          print "BASE_EXT_DECL0\n";
-          print "\n";
-      }
-
     }
 
     sub function {
@@ -3999,150 +2226,42 @@ BEGIN {
       my $prototype = $params{'prototype'};
       my $sfd       = $self->{SFD};
 
-      # Don't process private functions
-      if ($prototype->{private}) {
-          return;
+      if ($prototype->{type} eq 'cfunction') {
+          print "#define $gateprefix$prototype->{funcname} " .
+            "AROS_SLIB_ENTRY(" .
+            "$gateprefix$prototype->{funcname},$sfd->{Basename})\n\n";
       }
-      
-      $self->function_proto (prototype => $prototype, decl_regular => $self->{NEWFILE} );
-      $self->function_start (prototype => $prototype);
-      for my $i (0 .. $$prototype{'numargs'} - 1 ) {
-          $self->function_arg (prototype => $prototype,
-                         argtype   => $$prototype{'argtypes'}[$i],
-                         argname   => $$prototype{'___argnames'}[$i],
-                         argreg    => $$prototype{'regs'}[$i],
-                         argnum    => $i );
-      }
-      $self->function_end (prototype => $prototype);
 
-      print "\n";
-
-      $self->{NEWFILE} = 0;
+      $self->SUPER::function (@_);
     }
-
-    sub footer {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-
-      print "\n";
-      print "#undef BASE_EXT_DECL\n";
-      print "#undef BASE_EXT_DECL0\n";
-      print "#undef BASE_PAR_NAME\n";
-      print "#undef BASE_PAR_DECL\n";
-      print "#undef BASE_PAR_DECL0\n";
-      print "#undef BASE_NAME\n";
-      print "\n";
-      print "#ifdef __cplusplus\n";
-      print "}\n";
-      print "#endif /* __cplusplus */\n";
-    }
-
-
-    # Helper functions
-    
-    sub function_proto {
-      my $self     = shift;
-      my %params   = @_;
-      my $prototype    = $params{'prototype'};
-      my $decl_regular = $params{'decl_regular'};
-      my $sfd      = $self->{SFD};
-
-      if ($prototype->{type} eq 'varargs' && $decl_regular) {
-          my $rproto = $prototype->{real_prototype};
-
-          print "__inline $$rproto{'return'} $$rproto{'funcname'}(";
-          if (!$prototype->{nb}) {
-            if ($$rproto{'numargs'} == 0) {
-                print "BASE_PAR_DECL0";
-            }
-            else {
-                print "BASE_PAR_DECL ";
-            }
-          }
-          print join (', ', @{$$rproto{'___args'}});
-
-          print ");\n";
-          print "\n";
-      }
-
-      if ($prototype->{type} eq 'cfunction' &&
-          $prototype->{argnames}[$#{@{$prototype->{argnames}}}] eq '...') {
-          print "#if 0\n";
-          print "/* Unsupported */\n";
-      }
-
-      # Declare structs in case some ==include directive is missing
-      for my $argtype (@{$prototype->{argtypes}}) {
-          my $struct;
-
-          (undef, $struct) = ( $argtype =~ /\s*(const)?\s*struct\s*(\w+).*/) and
-            printf "struct $struct;\n";
-      }
-
       
-      print "__inline $$prototype{'return'}\n";
-      print "$$prototype{'funcname'}(";
-      if (!$prototype->{nb}) {
-          if ($$prototype{'numargs'} == 0) {
-            print "BASE_PAR_DECL0";
-          }
-          else {
-            print "BASE_PAR_DECL ";
-          }
-      }
-      print join (', ', @{$$prototype{'___args'}});
-      print ")";
-      
-    }
-
     sub function_start {
       my $self      = shift;
       my %params    = @_;
       my $prototype = $params{'prototype'};
       my $sfd       = $self->{SFD};
-      
-      print "\n";
-      print "{\n";
+      my $nb        = $prototype->{nb} || $libarg eq 'none';
 
-      if ($$prototype{'type'} eq 'varargs') {
-          print "  return $$prototype{'real_funcname'}(BASE_PAR_NAME ";
+      # AROS macros cannot handle function pointer arguments :-(
+
+      for my $i (0 .. $prototype->{numargs} - 1) {
+          if ($prototype->{argtypes}[$i] =~ /\(\*\)/) {
+            my $typedef  = $prototype->{argtypes}[$i];
+            my $typename = "$sfd->{Basename}_$prototype->{funcname}_fp$i";
+
+            $typedef =~ s/\(\*\)/(*_$typename)/;
+                
+            print "typedef $typedef;\n";
+          }
       }
-      elsif ($prototype->{type} eq 'cfunction') {
-          if (!$prototype->{nb}) {
-            print "  BASE_EXT_DECL\n";
-          }
 
-          my $argtypes = join (', ',@{$$prototype{'argtypes'}});
-
-          if ($argtypes eq '') {
-            if ($prototype->{nb}) {
-                $argtypes = "void";
-            }
-          }
-          else {
-            if (!$prototype->{nb}) {
-                $argtypes = "$sfd->{basetype}, $argtypes";
-            }
-          }
-
-
-          # Skip jmp instruction (is m68k ILLEGAL in MOS)
-          my $offs = $$prototype{'bias'} - 2;
-          
-          print "  $$prototype{'return'} (*_func) ($argtypes) = \n";
-          print "    ($$prototype{'return'} (*) ($argtypes))\n";
-          print "    *((ULONG*) (((char*) BASE_NAME) - $offs));\n";
-          print "  return (*_func)(";
-
-          if (!$prototype->{nb}) {
-            print "BASE_NAME";
-            print ", " unless $prototype->{numargs} == 0;
-          }
+      if ($self->{PROTO}) {
+          printf "AROS_LD%d%s(", $prototype->{numargs}, $nb ? "I" : "";
       }
       else {
-          print STDERR "$prototype->{funcname}: Unhandled.\n";
-          die;
+          printf "AROS_LH%d%s(", $prototype->{numargs}, $nb ? "I" : "";
       }
+      print "$prototype->{return}, $gateprefix$prototype->{funcname},\n";
     }
 
     sub function_arg {
@@ -4155,500 +2274,71 @@ BEGIN {
       my $argnum    = $params{'argnum'};
       my $sfd       = $self->{SFD};
 
-      my $argstr;
-      
-      if ($$prototype{'type'} eq 'varargs') {
-          if ($prototype->{subtype} eq 'printfcall') {
-            if ($argnum < $$prototype{'numargs'} - 1) {
-                $argstr = $argname;
-            }
-            elsif ($argnum == $$prototype{'numargs'} - 1) {
-                my $vartype  =
-                  $$prototype{'argtypes'}[$$prototype{'numargs'} - 1];
-                my $argnm =
-                  $$prototype{'___argnames'}[$$prototype{'numargs'} - 2];
-                $argstr = "($vartype) (&$argnm + 1)";
-            }
-            else {
-                $argstr = '';
-            }
-          }
-          else {
-            # tagcall/methodcall
-            if ($argnum < $$prototype{'numargs'} - 2) {
-                $argstr = $argname;
-            }
-            elsif ($argnum == $$prototype{'numargs'} - 2) {
-                my $vartype =
-                  $$prototype{'argtypes'}[$$prototype{'numargs'} - 1];
-                $argstr = "($vartype) &$argname";
-            }
-            else {
-                $argstr = '';
-            }
-          }
+      if ($argtype =~ /\(\*\)/) {
+          $argtype = "_$sfd->{Basename}_$prototype->{funcname}_fp$argnum";
       }
-      elsif ($prototype->{type} eq 'cfunction') {
-          $argstr = $argname;
+
+      if ($self->{PROTO}) {
+          print " AROS_LDA($argtype, $argname, " . (uc $argreg) . "),\n";
       }
       else {
-          print STDERR "$prototype->{funcname}: Unhandled.\n";
-          die;
-      }
-
-      if ($argstr ne '') {
-          print ($argnum != 0 ? ", $argstr" : $argstr);
-      }
+          print " AROS_LHA($argtype, $argname, " . (uc $argreg) . "),\n";
+      }         
     }
-
+    
     sub function_end {
       my $self      = shift;
       my %params    = @_;
       my $prototype = $params{'prototype'};
       my $sfd       = $self->{SFD};
-      
-      print ");\n";
-      print "}\n";
 
-      if ($prototype->{type} eq 'cfunction' &&
-          $prototype->{argnames}[$#{@{$prototype->{argnames}}}] eq '...') {
-          print "/* Unsupported */\n";
-          print "#endif\n";
-      }
-    }
-}
+      my $bt = "/* bt */";
+      my $bn = "/* bn */";
 
-### Class LVO: Create an assembler LVO include file ###########################
-
-BEGIN {
-    package LVO;
-
-    sub new {
-      my $proto  = shift;
-      my %params = @_;
-      my $class  = ref($proto) || $proto;
-      my $self   = {};
-      $self->{SFD} = $params{'sfd'};
-      bless ($self, $class);
-      return $self;
-    }
-
-    sub header {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-
-      print "* Automatically generated header (sfdc 1.11c)! Do not edit!\n";
-      print "     IFND  LVO_$sfd->{BASENAME}_LIB_I\n";
-      print "LVO_$sfd->{BASENAME}_LIB_I   SET   1\n";
-      print "\n";
-    }
-
-    sub function {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-
-      # Don't process private functions
-      if ($prototype->{private}) {
-          return;
-      }
-
-      if ($prototype->{type} eq 'function') {
-          print "_LVO$prototype->{funcname}     EQU   -$prototype->{bias}\n";
-      }
-    }
-    
-    sub footer {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-
-      print "\n";
-      print "     ENDC  * LVO_$sfd->{BASENAME}_LIB_I\n";
-    }
-}
-
-### Class StubMOS: Create a MorphOS stub file #################################
-
-BEGIN {
-    package StubMOS;
-    use vars qw(@ISA);
-    @ISA = qw( Stub );
-
-    sub new {
-      my $proto  = shift;
-      my $class  = ref($proto) || $proto;
-      my $self   = $class->SUPER::new( @_ );
-      bless ($self, $class);
-      return $self;
-    }
-
-    sub header {
-      my $self = shift;
-      
-      $self->SUPER::header (@_);
-
-      print "\n";
-      print "#include <emul/emulregs.h>\n";
-      print "#include <stdarg.h>\n";
-      print "\n";
-    }
-
-    sub function_proto {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-
-      if ($prototype->{type} eq 'varargs') {
-
-          if ($prototype->{subtype} ne 'tagcall') {
-            # We have to add the attribute to ourself first
-          
-            $self->special_function_proto (@_);
-            print " __attribute__((varargs68k));\n";
-            print "\n";
-            $self->special_function_proto (@_);
+      if ($prototype->{nb}) {
+          for my $i (0 .. $#{$prototype->{regs}}) {
+            if ($prototype->{regs}[$i] eq 'a6') {
+                $bt = $prototype->{argtypes}[$i];
+                $bn  =$prototype->{___argnames}[$i];
+                last;
+            }
           }
       }
       else {
-          $self->SUPER::function_proto (@_);
+          $bt = $sfd->{basetype};
+          $bn = "_base";
       }
-    }
-    
-    sub function_start {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
 
-      if ($prototype->{type} eq 'function') {
+      printf "    $bt, $bn, %d, $sfd->{Basename})",
+      $prototype->{bias} / 6;
+
+      if ($self->{PROTO}) {
+          print ";\n";
+          print "#define $gateprefix$prototype->{funcname} " .
+            "AROS_SLIB_ENTRY(" .
+            "$gateprefix$prototype->{funcname},$sfd->{Basename})\n";
+      }
+      else {
           print "\n";
           print "{\n";
+          print "  AROS_LIBFUNC_INIT\n";
+          print "  return $libprefix$prototype->{funcname}(";
 
-          if (!$prototype->{nb}) {
-            print "  BASE_EXT_DECL\n";
-          }
-      }
-      elsif ($prototype->{type} eq 'varargs') {
-          if ($prototype->{subtype} ne 'tagcall') {
-            my $na;
-
-            if ($prototype->{subtype} eq 'printfcall') {
-                $na = $prototype->{numargs} - 2;
-            }
-            else {
-                # methodcall: first vararg is removed
-                $na = $prototype->{numargs} - 3;
-            }
-            
-            print "\n";
-            print "{\n";
-            print "  va_list _va;\n";
-            print "  va_start (_va, $prototype->{___argnames}[$na]);\n";
-            print "  return $$prototype{'real_funcname'}(BASE_PAR_NAME ";
-          }
-          else {
-            # Shamelessly stolen from fd2inline ...
-            
-            # number of regs that contain varargs
-            my $n = 9 - $prototype->{numregs};
-
-            # add 4 bytes if that's an odd number, to avoid splitting a tag
-            my $d = $n & 1 ? 4 : 0;
-
-            # offset of the start of the taglist
-            my $taglist = 8;
-
-            # size of the stack frame
-            my $local = ($taglist + $n * 4 + $d + 8 + 15) & ~15;
-
-            #  Stack frame:
-            #
-            #   0 -  3: next frame ptr
-            #   4 -  7: save lr
-            #   8 -  8+n*4+d+8-1: tag list start
-            #   ? - local-1: padding
-
-            print  "__asm(\"\n";
-            print  "    .align      2\n";
-            print  "    .globl      $prototype->{funcname}\n";
-            print  "    .type $prototype->{funcname},\@function\n";
-            print  "$prototype->{funcname}:\n";
-            print  "    stwu  1,-$local(1)\n";
-            print  "    mflr  0\n";
-            printf "    stw   0,%d(1)\n", $local + 4;
-
-            # If n is odd, one tag is split between regs and stack.
-            # Copy its ti_Data together with the ti_Tag.
-          
-            if ($d != 0) {
-                # read ti_Data
-                printf "      lwz   0,%d(1)\n", $local + 8;
-            }
-
-            # Save the registers
-          
-            for my $count ($prototype->{numregs} .. 8) {
-                printf "      stw   %d,%d(1)\n",
-                $count + 2,
-                ($count - $prototype->{numregs}) * 4 + $taglist;
-            }
-
-            if ($d != 0) {
-                # write ti_Data
-                printf "      stw   0,%d(1)\n", $taglist + $n * 4;
-            }
-
-            # Add TAG_MORE
-
-            print  "    li    11,2\n";
-            printf "    addi  0,1,%d\n", $local + 8 + $d;
-            printf "    stw   11,%d(1)\n", $taglist + $n * 4 + $d;
-            printf "    stw   0,%d(1)\n", $taglist + $n * 4 + $d + 4;
-
-            # vararg_reg = &saved regs
-          
-            printf "    addi  %d,1,%d\n",
-            $prototype->{numregs} + 2, $taglist;
-            print "     bl    $prototype->{real_funcname}\n";
-          }
-      }
-      else {
-          $self->SUPER::function_start (@_);
-      }
-    }
-
-    sub function_arg {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $argtype   = $params{'argtype'};
-      my $argname   = $params{'argname'};
-      my $argreg    = $params{'argreg'};
-      my $argnum    = $params{'argnum'};
-      my $sfd       = $self->{SFD};
-
-      if ($$prototype{'type'} eq 'function') {
-          print "  REG_" . (uc $argreg) . " = (ULONG) $argname;\n";
-      }
-      elsif ($prototype->{type} eq 'varargs') {
-          if ($prototype->{subtype} eq 'tagcall') {
-          }
-          elsif ($prototype->{subtype} eq 'methodcall' &&
-               $argnum == $prototype->{numargs} - 2) {
-            # Nuke it!
-          }
-          elsif ($argnum == $prototype->{numargs} - 1) {
-            my $vt  = $$prototype{'argtypes'}[$$prototype{'numargs'} - 1];
-            print ", ($vt) _va->overflow_arg_area";
-          }
-          else {
-            $self->SUPER::function_arg (@_);
-          }
-      }
-      else {
-          $self->SUPER::function_arg (@_);
-      }
-    }
-    
-    sub function_end {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      if ($$prototype{'type'} eq 'function') {
-          if (!$prototype->{nb}) {
-            print "  REG_A6 = (ULONG) BASE_NAME;\n";
+          if ($libarg eq 'first' && !$prototype->{nb}) {
+            print "_base";
+            print $prototype->{numargs} > 0 ? ", " : "";
           }
 
-          print "  ";
-          
-          if (!$prototype->{nr}) {
-            print "return ($prototype->{return}) ";
+          print join (', ', @{$prototype->{___argnames}});
+      
+          if ($libarg eq 'last' && !$prototype->{nb}) {
+            print $prototype->{numargs} > 0 ? ", " : "";
+            print "_base";
           }
-
-          print "(*MyEmulHandle->EmulCallDirectOS)(-$prototype->{bias});\n";
-          print "}\n";
-      }
-      elsif ($prototype->{type} eq 'varargs') {
-          if ($prototype->{subtype} eq 'tagcall') {
-            # number of regs that contain varargs
-            my $n = 9 - $prototype->{numregs};
-
-            # add 4 bytes if that's an odd number, to avoid splitting a tag
-            my $d = $n & 1 ? 4 : 0;
-
-            # offset of the start of the taglist
-            my $taglist = 8;
-
-            # size of the stack frame
-            my $local = ($taglist + $n * 4 + $d + 8 + 15) & ~15;
-
-            # clear stack frame & return
-            printf "    lwz   0,%d(1)\n", $local + 4;
-            print  "    mtlr  0\n";
-            printf "    addi  1,1,%d\n", $local;
-            print  "    blr\n";
-            print  ".L$prototype->{funcname}e1:\n";
-            print  "    .size $prototype->{funcname}," .
-                ".L$prototype->{funcname}e1-$prototype->{funcname}\n";
-
-            print "\");\n";
-          }
-          else {
-            print ");\n";
-            print "}\n";
-          }
-      }
-      else {
-          $self->SUPER::function_end (@_);
-      }
-    }
-
-
-    sub special_function_proto {
-      my $self     = shift;
-      my %params   = @_;
-      my $prototype    = $params{'prototype'};
-      my $decl_regular = $params{'decl_regular'};
-      my $sfd      = $self->{SFD};
-
-      if ($prototype->{type} eq 'varargs' && $decl_regular) {
-          my $rproto = $prototype->{real_prototype};
-
-          print "$$rproto{'return'} $$rproto{'funcname'}(";
-          if (!$prototype->{nb}) {
-            if ($$rproto{'numargs'} == 0) {
-                print "BASE_PAR_DECL0";
-            }
-            else {
-                print "BASE_PAR_DECL ";
-            }
-          }
-          print join (', ', @{$$rproto{'___args'}});
-
+      
           print ");\n";
-          print "\n";
-      }
-      
-      print "$$prototype{'return'}\n";
-      print "$$prototype{'funcname'}(";
-      if (!$prototype->{nb}) {
-          if ($$prototype{'numargs'} == 0) {
-            print "BASE_PAR_DECL0";
-          }
-          else {
-            print "BASE_PAR_DECL ";
-          }
-      }
-
-      my @newargs;
-
-      for my $i (0 .. $#{@{$prototype->{___args}}}) {
-          if ($prototype->{subtype} ne 'methodcall' ||
-            $i != $prototype->{numargs} - 2 ) {
-            push @newargs, $prototype->{___args}[$i];
-          }
-      }
-
-      print join (', ', @newargs);
-      print ")";
-      
-    }
-}
-
-### Class MacroLP: Create a LP-style macro file ###############################
-
-BEGIN {
-    package MacroLP;
-    use vars qw(@ISA);
-    @ISA = qw( Macro );
-
-    sub new {
-      my $proto  = shift;
-      my $class  = ref($proto) || $proto;
-      my $self   = $class->SUPER::new( @_ );
-      bless ($self, $class);
-      return $self;
-    }
-
-    sub header {
-      my $self = shift;
-      my $sfd  = $self->{SFD};
-
-      $self->SUPER::header (@_);
-      
-      print "#ifndef __INLINE_MACROS_H\n";
-      print "#include <inline/macros.h>\n";
-      print "#endif /* !__INLINE_MACROS_H */\n";
-      print "\n";
-
-      if ($$sfd{'base'} ne '') {
-          print "#ifndef $self->{BASE}\n";
-          print "#define $self->{BASE} $$sfd{'base'}\n";
-          print "#endif /* !$self->{BASE} */\n";
-          print "\n";
-      }
-    }
-    
-    sub function_start {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      if ($$prototype{'type'} eq 'function') {
-          printf "      LP%d%s%s(0x%x, ", $$prototype{'numargs'},
-          $prototype->{nr} ? "NR" : "",
-          $prototype->{nb} ? "NB" : "", $$prototype{'bias'};
-
-          if (!$prototype->{nr}) {
-            print "$$prototype{'return'}, ";
-          }
-
-          print "$$prototype{'funcname'}";
-      }
-      else {
-          $self->SUPER::function_start (@_);
-      }
-    }
-
-    sub function_arg {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $argtype   = $params{'argtype'};
-      my $argname   = $params{'argname'};
-      my $argreg    = $params{'argreg'};
-      my $argnum    = $params{'argnum'};
-      my $sfd       = $self->{SFD};
-
-      if ($$prototype{'type'} eq 'function') {
-          print ", $argtype, $argname, $argreg";
-      }
-      else {
-          $self->SUPER::function_arg (@_);
-      }
-    }
-    
-    sub function_end {
-      my $self      = shift;
-      my %params    = @_;
-      my $prototype = $params{'prototype'};
-      my $sfd       = $self->{SFD};
-
-      
-      if ($$prototype{'type'} eq 'function') {
-
-          if (!$prototype->{nb}) {
-            print ",\\\n      , $self->{BASE})\n";
-          }
-          else {
-            print ")\n";
-          }
-      }
-      else {
-          $self->SUPER::function_end (@_);
+          print "  AROS_LIBFUNC_EXIT\n";
+          print "}\n";
       }
     }
 }
@@ -4794,10 +2484,1437 @@ BEGIN {
     }
 }
 
-### Class AutoOpen: Create a proto file #######################################
+### Class GateMOS: Create a MorphOS gatestub file #############################
 
 BEGIN {
-    package AutoOpen;
+    package GateMOS;
+    use vars qw(@ISA);
+    @ISA = qw( Gate );
+
+    sub new {
+      my $proto  = shift;
+      my $class  = ref($proto) || $proto;
+      my $self   = $class->SUPER::new( @_ );
+      bless ($self, $class);
+      return $self;
+    }
+
+    sub header {
+      my $self = shift;
+      
+      $self->SUPER::header (@_);
+
+      if ($sdi eq 0) {
+        print "#include <emul/emulregs.h>\n\n";
+        print "int $gateprefix" . "UNIMPLEMENTED(void)";
+      }
+      else {
+        print "#include <SDI_lib.h>\n\n";
+        print "LIBSTUB(UNIMPLEMENTED, int)";
+      }
+
+      if ($self->{PROTO}) {
+        print ";";
+      }
+      else {
+        print "\n";
+        print "{\n";
+        print "  // nothing\n";
+        print "  return 0;\n";
+        print "}\n";
+      }
+      print "\n";
+    }
+
+    sub function_start {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      my $rettype_prefix = $prototype->{return};
+      my $rettype_postfix = "";
+      if ($prototype->{return} =~ /(.*\(\*+)(\).*)/) {
+        $rettype_prefix = $1;
+        $rettype_postfix = $2;
+      }
+
+      if ($sdi eq 0) {
+        print "$rettype_prefix ";
+        print "$gateprefix$prototype->{funcname}(void)$rettype_postfix";
+        
+      }
+      else {
+        if ($prototype->{return} =~ /\(\*+\)/) {
+          print "LIBSTUB($prototype->{funcname}, void *)";
+        }
+        else {
+          print "LIBSTUB($prototype->{funcname}, $prototype->{return})";
+        }
+      }
+
+      if ($self->{PROTO}) {
+        print ";";
+      }
+      else {
+        print "\n";
+        print "{\n";
+        if ($sdi ne 0) {
+          print "  __BASE_OR_IFACE = (__BASE_OR_IFACE_TYPE)REG_A6;\n";
+          print "  return CALL_LFUNC($prototype->{funcname}";
+        }
+      }
+    }
+
+    sub function_arg {
+      my $self      = shift;
+
+      if (!$self->{PROTO}) {
+          my %params    = @_;
+          my $prototype = $params{'prototype'};
+          my $argtype   = $params{'argtype'};
+          my $argname   = $params{'argname'};
+          my $argreg    = $params{'argreg'};
+          my $argnum    = $params{'argnum'};
+          my $sfd       = $self->{SFD};
+
+          if($argtype eq "va_list") {
+            $argtype = "long *";
+          }
+
+          my $argdef = $argtype . " " . $argname;
+          if ($argtype =~ /\(\*+\)/) {
+            $argdef = $argtype;
+            $argdef =~ s/\(\*+\)/\(\*$argname\)/g;
+          }
+
+          if ($sdi eq 0) {
+            print "  $argdef = ($argtype)REG_" . (uc $argreg) . ";\n";
+          }
+          else {
+            print ", ($argtype)REG_" . (uc $argreg);
+          }
+      }
+    }
+    
+    sub function_end {
+      my $self      = shift;
+
+      if (!$self->{PROTO}) {
+          my %params    = @_;
+          my $prototype = $params{'prototype'};
+          my $sfd       = $self->{SFD};
+
+          if ($sdi eq 0) {
+            if ($libarg ne 'none' && !$prototype->{nb}) {
+              print "  $sfd->{basetype} _base = ($sfd->{basetype})"."REG_A6;\n";
+            }
+            
+            print "  return $libprefix$prototype->{funcname}(";
+
+            if ($libarg eq 'first' && !$prototype->{nb}) {
+              print "_base";
+              print $prototype->{numargs} > 0 ? ", " : "";
+            }
+
+            print join (', ', @{$prototype->{___argnames}});
+      
+            if ($libarg eq 'last' && !$prototype->{nb}) {
+              print $prototype->{numargs} > 0 ? ", " : "";
+              print "_base";
+            }
+          }
+      
+          print ");\n";
+          print "}\n";
+      }
+    }
+}
+
+### Class Interface: Create a struct with function pointers ###################
+
+BEGIN {
+    package Interface;
+
+    sub new {
+      my $proto  = shift;
+      my %params = @_;
+      my $class  = ref($proto) || $proto;
+      my $self   = {};
+      $self->{SFD} = $params{'sfd'};
+      $self->{BIAS} = -1;
+      $self->{PADCNT} = 1;
+      bless ($self, $class);
+      return $self;
+    }
+
+    sub header {
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      print "/* Automatically generated function table (sfdc 1.12)! Do not edit! */\n";
+      print "\n";
+      print "#ifndef $sfd->{'BASENAME'}_INTERFACE_DEF_H\n";
+      print "#define $sfd->{'BASENAME'}_INTERFACE_DEF_H\n";
+      print "\n";
+
+      foreach my $inc (@{$$sfd{'includes'}}) {
+          print "#include $inc\n";
+      }
+
+      foreach my $td (@{$$sfd{'typedefs'}}) {
+          print "typedef $td;\n";
+      }
+
+      print "\n";
+      $self->define_interface_data();
+      print "\n";
+
+      print "struct $sfd->{BaseName}IFace\n";
+      print "{\n";
+
+      $self->output_prelude();
+    }
+
+    sub function {
+      my $self      = shift;
+      my $sfd       = $self->{SFD};
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+
+      if ($self->{BIAS} == -1) {
+          $self->{BIAS} = $prototype->{bias} - 6;
+      }
+
+      while ($self->{BIAS} < ($prototype->{bias} - 6)) {
+          print "  APTR Pad$self->{PADCNT};\n";
+          $self->{BIAS} += 6;
+          ++$self->{PADCNT};
+      }
+
+      $self->{BIAS} = $prototype->{bias};
+
+      $self->output_function(@_);
+    }
+    
+    sub footer {
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      print "};\n";
+      print "\n";
+      print "#endif /* $sfd->{'BASENAME'}_INTERFACE_DEF_H */\n";
+    }
+
+
+    # Helper functions
+    
+    sub define_interface_data {
+      my $self     = shift;
+      my $sfd      = $self->{SFD};
+
+      print "struct $sfd->{BaseName}InterfaceData {\n";
+      print "  $sfd->{basetype} LibBase;\n";
+      print "};\n";
+    }
+
+
+    sub output_prelude {
+      my $self     = shift;
+      my $sfd      = $self->{SFD};
+
+      print "  struct $sfd->{BaseName}InterfaceData Data;\n";
+      print "\n";
+      print "  static struct $sfd->{BaseName}IFace* CreateIFace($sfd->{basetype} _$sfd->{base}) {\n";
+      print "    struct $sfd->{BaseName}IFace* _iface = new struct $sfd->{BaseName}IFace();\n";
+      print "    _iface->Data.LibBase = _$sfd->{base};\n";
+      print "    return _iface;\n";
+      print "  }\n";
+      print "\n";
+      print "  static void DestroyIFace(struct $sfd->{BaseName}IFace* _iface) {\n";
+      print "    delete _iface;\n";
+      print "  }\n";
+      print "\n";
+    }
+
+    sub output_function {
+      my $self     = shift;
+      my $sfd      = $self->{SFD};
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+
+      print "  $prototype->{return} ";
+      print "$prototype->{funcname}(";
+      print join (', ', @{$prototype->{args}});
+      print ");\n";
+    }
+}
+
+### Class Interface: Create a struct with function pointers ###################
+
+BEGIN {
+    package InterfaceAOS4;
+    use vars qw(@ISA);
+    @ISA = qw( Interface );
+
+    sub new {
+      my $proto  = shift;
+      my $class  = ref($proto) || $proto;
+      my $self   = $class->SUPER::new( @_ );
+      bless ($self, $class);
+      return $self;
+    }
+
+    # Helper functions
+    
+    sub define_interface_data {
+      my $self     = shift;
+      my $sfd      = $self->{SFD};
+
+      print "#include <exec/interfaces.h>\n";
+    }
+
+
+    sub output_prelude {
+      my $self     = shift;
+      my $sfd      = $self->{SFD};
+
+      print "  struct InterfaceData Data;\n";
+      print "\n";
+      print "#ifdef __cplusplus\n";
+      print "  static struct $sfd->{BaseName}IFace* CreateIFace($sfd->{basetype} _$sfd->{base}) {\n";
+      print "    return (struct $sfd->{BaseName}IFace*) GetInterface((struct Library*) _$sfd->{base}, \"main\", 1, NULL);\n";
+      print "  }\n";
+      print "\n";
+      print "  static void DestroyIFace(struct $sfd->{BaseName}IFace* _iface) {\n";
+      print "      DropInterface((struct Interface*) _iface);\n";
+      print "  }\n";
+      print "#endif\n";
+      print "\n";
+      print "  ULONG APICALL (*Obtain)(struct $sfd->{BaseName}IFace *Self);\n";
+      print "  ULONG APICALL (*Release)(struct $sfd->{BaseName}IFace *Self);\n";
+      print "  void APICALL (*Expunge)(struct $sfd->{BaseName}IFace *Self);\n";
+      print "  struct Interface * APICALL (*Clone)(struct $sfd->{BaseName}IFace *Self);\n";
+    }
+
+    sub output_function {
+      my $self     = shift;
+      my $sfd      = $self->{SFD};
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+
+      print "  $prototype->{return} APICALL ";
+      print "(*$prototype->{funcname})(struct $sfd->{BaseName}IFace* Self";
+
+      if ($prototype->{type} eq 'varargs' &&
+          ($prototype->{subtype} eq 'tagcall' ||
+           $prototype->{subtype} eq 'methodcall')) {
+          # Nuke second last argument (=first varargs argument) 
+          # or it will be placed in a register!
+          for my $i (0 .. $#{@{$prototype->{args}}}) {
+            if ($i != $prototype->{numargs} - 2 ) {
+                print ", $prototype->{args}[$i]";
+          }
+      }
+          
+      }
+      else {
+          if ($prototype->{numargs} != 0) {
+            print ", ";
+          }
+          print join (', ', @{$prototype->{args}});
+      }
+      print ");\n";
+    }
+}
+
+### Class LVO: Create an assembler LVO include file ###########################
+
+BEGIN {
+    package LVO;
+
+    sub new {
+      my $proto  = shift;
+      my %params = @_;
+      my $class  = ref($proto) || $proto;
+      my $self   = {};
+      $self->{SFD} = $params{'sfd'};
+      bless ($self, $class);
+      return $self;
+    }
+
+    sub header {
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      print "* Automatically generated header (sfdc 1.12)! Do not edit!\n";
+      print "     IFND  LVO_$sfd->{BASENAME}_LIB_I\n";
+      print "LVO_$sfd->{BASENAME}_LIB_I   SET   1\n";
+      print "\n";
+    }
+
+    sub function {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+
+      # Don't process private functions
+      if ($prototype->{private}) {
+          return;
+      }
+
+      if ($prototype->{type} eq 'function') {
+          print "_LVO$prototype->{funcname}     EQU   -$prototype->{bias}\n";
+      }
+    }
+    
+    sub footer {
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      print "\n";
+      print "     ENDC  * LVO_$sfd->{BASENAME}_LIB_I\n";
+    }
+}
+
+### Class Macro: Create a generic macro file ##################################
+
+# Macros are a bit different than those generated by fd2inline.
+#
+# Tag lists ("stdarg") are always initialized with the first tag value
+# followed by __VA_ARGS__. This generates a compile-time error if no tags
+# are supplied (TAG_DONE is the minimal tag list).
+
+BEGIN {
+    package Macro;
+
+    sub new {
+      my $proto  = shift;
+      my %params = @_;
+      my $class  = ref($proto) || $proto;
+      my $self   = {};
+      $self->{SFD}  = $params{'sfd'};
+      $self->{BASE} = "${$self->{SFD}}{'BASENAME'}_BASE_NAME";
+      $self->{BASE} =~ s/^([0-9])/_$1/;
+      bless ($self, $class);
+      return $self;
+    }
+
+    sub header {
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      print "/* Automatically generated header (sfdc 1.12)! Do not edit! */\n";
+      print "\n";
+      print "#ifndef _INLINE_$$sfd{'BASENAME'}_H\n";
+      print "#define _INLINE_$$sfd{'BASENAME'}_H\n";
+      print "\n";
+      print "#ifndef _SFDC_VARARG_DEFINED\n";
+      print "#define _SFDC_VARARG_DEFINED\n";
+      print "#ifdef __HAVE_IPTR_ATTR__\n";
+      print "typedef APTR _sfdc_vararg __attribute__((iptr));\n";
+      print "#else\n";
+      print "typedef ULONG _sfdc_vararg;\n";
+      print "#endif /* __HAVE_IPTR_ATTR__ */\n";
+      print "#endif /* _SFDC_VARARG_DEFINED */\n";
+      print "\n";
+    }
+
+    sub function {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      # Don't process private functions
+      if ($prototype->{private}) {
+          return;
+      }
+      
+      if ($$prototype{'type'} eq 'varargs') {
+          if ($prototype->{subtype} eq 'tagcall') {
+            print "#ifndef NO_INLINE_STDARG\n";
+          }
+          else {
+            print "#ifndef NO_INLINE_VARARGS\n";
+          }
+      }
+      
+      $self->function_define (prototype => $prototype);
+      $self->function_start (prototype => $prototype);
+      for my $i (0 .. $$prototype{'numargs'} - 1 ) {
+          $self->function_arg (prototype => $prototype,
+                         argtype   => $$prototype{'argtypes'}[$i],
+                         argname   => $$prototype{'___argnames'}[$i],
+                         argreg    => $$prototype{'regs'}[$i],
+                         argnum    => $i );
+      }
+      $self->function_end (prototype => $prototype);
+
+      if ($$prototype{'type'} eq 'varargs') {
+          if ($prototype->{subtype} eq 'tagcall') {
+          print "#endif /* !NO_INLINE_STDARG */\n";
+          }
+          else {
+          print "#endif /* !NO_INLINE_VARARGS */\n";
+          }
+      }
+
+      print "\n";
+    }
+
+    sub footer {
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      print "#endif /* !_INLINE_$$sfd{'BASENAME'}_H */\n";
+    }
+
+
+    # Helper functions
+    
+    sub function_define {
+      my $self     = shift;
+      my %params   = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd      = $self->{SFD};
+
+      print "#define $$prototype{'funcname'}(";
+      print join (', ', @{$$prototype{'___argnames'}});
+      print ") \\\n";
+    }
+
+    sub function_start {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+      my $nr        = $$prototype{'return'} =~ /^(VOID|void)$/;
+
+      if ($$prototype{'type'} eq 'varargs') {
+          if ($prototype->{subtype} eq 'tagcall' ||
+            $prototype->{subtype} eq 'methodcall') {
+            my $first_stdargnum = $$prototype{'numargs'} - 2;
+            my $first_stdarg = $$prototype{'___argnames'}[$first_stdargnum];
+          
+            printf "    ({_sfdc_vararg _%s[] = { $first_stdarg, __VA_ARGS__ }; ",
+            $prototype->{subtype} eq 'tagcall' ? "tags" : "message";
+            print "$$prototype{'real_funcname'}(";
+          }
+          else {
+            print "     ({_sfdc_vararg _args[] = { __VA_ARGS__ }; ";
+
+            print "$$prototype{'real_funcname'}(";
+          }
+      }
+      elsif ($prototype->{type} eq 'cfunction') {
+          my $argtypes = join (', ',@{$$prototype{'argtypes'}});
+
+          if ($argtypes eq '') {
+            if ($prototype->{nb}) {
+                $argtypes = "void";
+            }
+          }
+          else {
+            if (!$prototype->{nb}) {
+                $argtypes = "$sfd->{basetype}, $argtypes";
+            }
+          }
+          
+          print " ({$$prototype{'return'} (*_func) ($argtypes) = \\\n";
+          print "     ($$prototype{'return'} (*) ($argtypes))\\\n";
+
+          if ($$classes{'target'} eq 'morphos') {
+            # Skip jmp instruction (is m68k ILLEGAL in MorphOS)
+            my $o = $$prototype{'bias'} - 2;
+            print "         *((ULONG*) (((char*) $self->{BASE}) - $o));\\\n";
+          }
+          elsif ($classes->{target} eq 'aros') {
+            my $o = $$prototype{'bias'} / 6;
+            print "         __AROS_GETVECADDR($self->{BASE}, $o);\\\n";
+          }
+          else {
+            my $o = $$prototype{'bias'};
+            print "         (((char*) $self->{BASE}) - $o);\\\n";
+          }
+
+          print "   (*_func)(";
+
+          if (!$prototype->{nb}) {
+            print "($self->{BASE})";
+            print ", " unless $prototype->{numargs} == 0;
+          }
+      }
+      else {
+          print STDERR "$prototype->{funcname}: Unhandled.\n";
+          die;
+      }
+    }
+
+    sub function_arg {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $argtype   = $params{'argtype'};
+      my $argname   = $params{'argname'};
+      my $argreg    = $params{'argreg'};
+      my $argnum    = $params{'argnum'};
+      my $sfd       = $self->{SFD};
+
+      if ($$classes{'target'} eq 'morphos') {
+    if($argtype eq "va_list") {
+      $argtype = "long *";
+    }
+  }
+
+      if ($$prototype{'type'} eq 'varargs') {
+          if ($prototype->{subtype} eq 'tagcall' ||
+            $prototype->{subtype} eq 'methodcall') {
+            my $first_stdargnum = $$prototype{'numargs'} - 2;
+
+            # Skip the first stdarg completely
+            if( $argnum != $first_stdargnum ) {
+                if ($argname eq '...') {
+                  if ($prototype->{subtype} eq 'tagcall') {
+                      print "($argtype) _tags";
+                  }
+                  else {
+                      print "($argtype) _message";
+                  }
+                }
+                else {
+                  print "($argname), ";
+                }
+            }
+          }
+          else {
+            if ($argname eq '...') {
+                print "($argtype) _args";
+            }
+            else {
+                print "($argname), ";
+            }
+          }
+      }
+      elsif ($prototype->{type} eq 'cfunction') {
+          if ($argname eq '...' ) {
+            print ($argnum != 0 ? ", __VA_ARGS__" : "__VA_ARGS__");
+          }
+          else {
+            print ($argnum != 0 ? ", ($argname)" : "($argname)");
+          }
+      }
+      else {
+          print STDERR "$prototype->{funcname}: Unhandled.\n";
+          die;
+      }
+    }
+    
+    sub function_end {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      
+      print "); })\n";
+    }
+}
+
+### Class Macro68k: Implements m68k-only features for macro files #############
+
+BEGIN {
+    package Macro68k;
+    use vars qw(@ISA);
+    @ISA = qw( MacroLP );
+
+    sub new {
+      my $proto  = shift;
+      my $class  = ref($proto) || $proto;
+      my $self   = $class->SUPER::new( @_ );
+      bless ($self, $class);
+      return $self;
+    }
+
+    sub function_start {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      if ($$prototype{'type'} eq 'function') {
+
+          my $regs      = join(',', @{$$prototype{'regs'}});
+          my $argtypes  = join(',', @{$$prototype{'argtypes'}});
+          my $a4        = $regs =~ /a4/;
+          my $a5        = $regs =~ /a5/;
+          my $fp        = $argtypes =~ /\(\*+\)/;
+      my $return    = $$prototype{'return'};
+      my $numfp     = 0;
+
+          if ($a4 && $a5 && !$quiet) {
+            print STDERR "$$prototype{'funcname'} uses both a4 and a5 " .
+                "for arguments. This is not going to work.\n";
+          }
+      
+      @{$self->{FUNCARGTYPE}} = ();
+          for my $argtype (@{$$prototype{'argtypes'}}) {
+            if ($argtype =~ /\(\*+\)/) {
+                @{$self->{FUNCARGTYPE}}[$numfp] = $argtype;
+        $numfp++;
+            }
+          }
+
+      $self->{FUNCRETTYPE} = '';
+      if($return =~ /\(\*+\)/)
+      {
+        $self->{FUNCRETTYPE} = $return;
+      }
+          
+          printf "      LP%d%s%s%s%s%s%s%s(0x%x, ", $$prototype{'numargs'},
+          $prototype->{nr} ? "NR" : "",
+          $prototype->{nb} ? "NB" : "",
+          $a4 ? "A4" : "", $a5 ? "A5" : "",
+          scalar @{$self->{FUNCARGTYPE}} > 0 ? "FP" : "",
+          scalar @{$self->{FUNCARGTYPE}} > 1 ? scalar @{$self->{FUNCARGTYPE}} : "",
+      $self->{FUNCRETTYPE} ne '' ? "FR" : "",
+          $$prototype{'bias'};
+
+      if ($self->{FUNCRETTYPE})
+      {
+        print "__fpr, "; 
+      }
+          elsif (!$prototype->{nr}) {
+            print "$$prototype{'return'}, ";
+          }
+
+          print "$$prototype{'funcname'} ";
+      }
+      else {
+          $self->SUPER::function_start (@_);
+      }
+    }
+
+
+    sub function_arg {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+
+      if ($$prototype{'type'} eq 'function') {
+          my $argtype   = $params{'argtype'};
+          my $argname   = $params{'argname'};
+          my $argreg    = $params{'argreg'};
+      my $fpidx     = 0;
+      my $fpfound   = 0;
+          
+          if ($argreg eq 'a4' || $argreg eq 'a5') {
+            $argreg = 'd7';
+          }
+          
+      for my $atype (@{$self->{FUNCARGTYPE}}) {
+        $fpidx++;
+        if ($atype eq $argtype) {
+          printf ", __fpt%s, %s, %s",
+            scalar @{$self->{FUNCARGTYPE}} > 1 ? $fpidx : "",
+            $argname, $argreg;
+          $fpfound = 1;
+          last;
+                }
+      }
+
+          if($fpfound eq 0) {
+        print ", $argtype, $argname, $argreg";
+          }
+      }
+        else {
+          $self->SUPER::function_arg (@_);
+      }
+    }
+
+    sub function_end {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+  my $fpidx     = 0;
+
+      if ($$prototype{'type'} eq 'function') {
+          if (!$prototype->{nb}) {
+            print ",\\\n      , $self->{BASE}";
+          }
+
+      for my $fa (@{$self->{FUNCARGTYPE}}) {
+        $fpidx++;
+        if(scalar @{$self->{FUNCARGTYPE}} gt 1) {
+                  $fa =~ s/\((\*+)\)/($1__fpt$fpidx)/;
+        }
+        else {
+                  $fa =~ s/\((\*+)\)/($1__fpt)/;
+        }
+                print ", $fa";
+      }
+
+      if ($self->{FUNCRETTYPE} ne '')
+      {
+        my $fr = $self->{FUNCRETTYPE};
+
+        $fr =~ s/\((\*+)\)/($1__fpr)/;
+
+        print ", $fr";
+      }
+          
+          print ")\n";
+      }
+      else {
+          $self->SUPER::function_end (@_);
+      }
+    }
+}
+
+### Class MacroAOS4: Create a AOS4-style macro file ###########################
+
+BEGIN {
+    package MacroAOS4;
+    use vars qw(@ISA);
+    @ISA = qw( Macro );
+
+    sub new {
+      my $proto  = shift;
+      my $class  = ref($proto) || $proto;
+      my $self   = $class->SUPER::new( @_ );
+      bless ($self, $class);
+      return $self;
+    }
+
+    sub function_start {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      if ($prototype->{type} eq 'function' ||
+          $prototype->{type} eq 'varargs') {
+          printf "      I$sfd->{BaseName}->$prototype->{funcname}(";
+      }
+      else {
+          $self->SUPER::function_start (@_);
+      }
+    }
+
+    sub function_arg {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $argtype   = $params{'argtype'};
+      my $argname   = $params{'argname'};
+      my $argreg    = $params{'argreg'};
+      my $argnum    = $params{'argnum'};
+      my $sfd       = $self->{SFD};
+
+      if ($prototype->{type} eq 'function' ||
+          $prototype->{type} eq 'varargs') {
+          print ", " unless $argnum == 0;
+          if ($argname ne '...') {
+            print "$argname";
+          }
+          else {
+            print "__VA_ARGS__";
+          }
+      }
+      else {
+          $self->SUPER::function_arg (@_);
+      }
+    }
+    
+    sub function_end {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      
+      if ($prototype->{type} eq 'function' ||
+          $prototype->{type} eq 'varargs') {
+          print ")\n";
+      }
+      else {
+          $self->SUPER::function_end (@_);
+      }
+    }
+}
+
+### Class MacroAROS: Implements AROS macro files ##############################
+
+BEGIN {
+    package MacroAROS;
+    use vars qw(@ISA);
+    @ISA = qw( Macro );
+
+    sub new {
+      my $proto  = shift;
+      my $class  = ref($proto) || $proto;
+      my $self   = $class->SUPER::new( @_ );
+      bless ($self, $class);
+      return $self;
+    }
+
+    sub header {
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      $self->SUPER::header (@_);
+      
+      print "#ifndef AROS_LIBCALL_H\n";
+      print "#include <aros/libcall.h>\n";
+      print "#endif /* !AROS_LIBCALL_H */\n";
+      print "\n";
+
+      if ($$sfd{'base'} ne '') {
+          print "#ifndef $self->{BASE}\n";
+          print "#define $self->{BASE} $$sfd{'base'}\n";
+          print "#endif /* !$self->{BASE} */\n";
+          print "\n";
+      }
+    }
+
+    sub function_start {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      if ($$prototype{'type'} eq 'function') {
+          printf "      AROS_LC%d%s(%s, %s, \\\n",
+          $$prototype{'numargs'}, $prototype->{nb} ? "I" : "",
+          $$prototype{'return'}, $$prototype{'funcname'};
+      }
+      else {
+          $self->SUPER::function_start (@_);
+      }
+    }
+
+
+    sub function_arg {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+
+      if ($$prototype{'type'} eq 'function') {
+          my $argtype   = $params{'argtype'};
+          my $argname   = $params{'argname'};
+          my $argreg    = $params{'argreg'};
+          
+          print " AROS_LCA($argtype, ($argname), " . uc $argreg . "), \\\n";
+      }
+        else {
+          $self->SUPER::function_arg (@_);
+      }
+    }
+
+    sub function_end {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      if ($$prototype{'type'} eq 'function') {
+          if( !$prototype->{nb}) {
+            print "     $$sfd{'basetype'}, $self->{BASE}, ";
+          }
+          else {
+            my $bt = "/* bt */";
+            my $bn = "/* bn */";
+
+            for my $i (0 .. $#{$prototype->{regs}}) {
+                if ($prototype->{regs}[$i] eq 'a6') {
+                  $bt = $prototype->{argtypes}[$i];
+                  $bn  =$prototype->{___argnames}[$i];
+                  last;
+                }
+            }
+            
+            print "     $bt, $bn, ";
+          }
+          
+          print $$prototype{'bias'} / 6;
+          print ", $sfd->{Basename})\n";
+      }
+      else {
+          $self->SUPER::function_end (@_);
+      }
+    }
+}
+
+### Class MacroLP: Create a LP-style macro file ###############################
+
+BEGIN {
+    package MacroLP;
+    use vars qw(@ISA);
+    @ISA = qw( Macro );
+
+    sub new {
+      my $proto  = shift;
+      my $class  = ref($proto) || $proto;
+      my $self   = $class->SUPER::new( @_ );
+      bless ($self, $class);
+      return $self;
+    }
+
+    sub header {
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      $self->SUPER::header (@_);
+      
+      print "#ifndef __INLINE_MACROS_H\n";
+      print "#include <inline/macros.h>\n";
+      print "#endif /* !__INLINE_MACROS_H */\n";
+      print "\n";
+
+      if ($$sfd{'base'} ne '') {
+          print "#ifndef $self->{BASE}\n";
+          print "#define $self->{BASE} $$sfd{'base'}\n";
+          print "#endif /* !$self->{BASE} */\n";
+          print "\n";
+      }
+    }
+    
+    sub function_start {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      if ($$prototype{'type'} eq 'function') {
+          printf "      LP%d%s%s(0x%x, ", $$prototype{'numargs'},
+          $prototype->{nr} ? "NR" : "",
+          $prototype->{nb} ? "NB" : "", $$prototype{'bias'};
+
+          if (!$prototype->{nr}) {
+            print "$$prototype{'return'}, ";
+          }
+
+          print "$$prototype{'funcname'}";
+      }
+      else {
+          $self->SUPER::function_start (@_);
+      }
+    }
+
+    sub function_arg {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $argtype   = $params{'argtype'};
+      my $argname   = $params{'argname'};
+      my $argreg    = $params{'argreg'};
+      my $argnum    = $params{'argnum'};
+      my $sfd       = $self->{SFD};
+
+      if ($$prototype{'type'} eq 'function') {
+          print ", $argtype, $argname, $argreg";
+      }
+      else {
+          $self->SUPER::function_arg (@_);
+      }
+    }
+    
+    sub function_end {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      
+      if ($$prototype{'type'} eq 'function') {
+
+          if (!$prototype->{nb}) {
+            print ",\\\n      , $self->{BASE})\n";
+          }
+          else {
+            print ")\n";
+          }
+      }
+      else {
+          $self->SUPER::function_end (@_);
+      }
+    }
+}
+
+### Class MacroMOS: Implements MorphOS-only features for macro files ##########
+
+BEGIN {
+    package MacroMOS;
+    use vars qw(@ISA);
+    @ISA = qw (Macro68k);
+
+    sub new {
+      my $proto  = shift;
+      my $class  = ref($proto) || $proto;
+      my $self   = $class->SUPER::new( @_ );
+      bless ($self, $class);
+      return $self;
+    }
+
+    sub header {
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      print "/* Automatically generated header (sfdc 1.12)! Do not edit! */\n";
+      print "\n";
+      print "#ifndef _PPCINLINE_$$sfd{'BASENAME'}_H\n";
+      print "#define _PPCINLINE_$$sfd{'BASENAME'}_H\n";
+      print "\n";
+      print "#ifndef _SFDC_VARARG_DEFINED\n";
+      print "#define _SFDC_VARARG_DEFINED\n";
+      print "#ifdef __HAVE_IPTR_ATTR__\n";
+      print "typedef APTR _sfdc_vararg __attribute__((iptr));\n";
+      print "#else\n";
+      print "typedef ULONG _sfdc_vararg;\n";
+      print "#endif /* __HAVE_IPTR_ATTR__ */\n";
+      print "#endif /* _SFDC_VARARG_DEFINED */\n";
+      print "\n";
+ 
+      print "#ifndef __PPCINLINE_MACROS_H\n";
+      print "#include <ppcinline/macros.h>\n";
+      print "#endif /* !__PPCINLINE_MACROS_H */\n";
+      print "\n";
+
+      if ($$sfd{'base'} ne '') {
+          print "#ifndef $self->{BASE}\n";
+          print "#define $self->{BASE} $$sfd{'base'}\n";
+          print "#endif /* !$self->{BASE} */\n";
+          print "\n";
+      }
+    }
+
+    sub footer {
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      print "#endif /* !_PPCINLINE_$$sfd{'BASENAME'}_H */\n";
+    }
+
+    sub function_start {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      if ($$prototype{'type'} eq 'function') {
+
+          my $regs      = join(',', @{$$prototype{'regs'}});
+          my $argtypes  = join(',', @{$$prototype{'argtypes'}});
+          my $fp        = $argtypes =~ /\(\*+\)/;
+      my $return    = $$prototype{'return'};
+      my $numfp     = 0;
+
+      @{$self->{FUNCARGTYPE}} = ();
+          for my $argtype (@{$$prototype{'argtypes'}}) {
+            if ($argtype =~ /\(\*+\)/) {
+                @{$self->{FUNCARGTYPE}}[$numfp] = $argtype;
+        $numfp++;
+            }
+          }
+
+      $self->{FUNCRETTYPE} = '';
+      if($return =~ /\(\*+\)/)
+      {
+        $self->{FUNCRETTYPE} = $return;
+      }
+          
+          printf "      LP%d%s%s%s%s%s(0x%x, ", $$prototype{'numargs'},
+          $prototype->{nr} ? "NR" : "",
+          $prototype->{nb} ? "NB" : "",
+          scalar @{$self->{FUNCARGTYPE}} > 0 ? "FP" : "",
+          scalar @{$self->{FUNCARGTYPE}} > 1 ? scalar @{$self->{FUNCARGTYPE}} : "",
+      $self->{FUNCRETTYPE} ne '' ? "FR" : "",
+          $$prototype{'bias'};
+
+      if ($self->{FUNCRETTYPE})
+      {
+        print "__fpr, "; 
+      }
+          elsif (!$prototype->{nr}) {
+            print "$$prototype{'return'}, ";
+          }
+
+          print "$$prototype{'funcname'} ";
+      }
+      else {
+          $self->SUPER::function_start (@_);
+      }
+    }
+
+    sub function_arg {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+
+      if ($$prototype{'type'} eq 'function') {
+          my $argtype   = $params{'argtype'};
+          my $argname   = $params{'argname'};
+          my $argreg    = $params{'argreg'};
+      my $fpidx     = 0;
+      my $fpfound   = 0;
+          
+          if ($argreg eq 'a4' || $argreg eq 'a5') {
+            $argreg = 'd7';
+          }
+          
+      for my $atype (@{$self->{FUNCARGTYPE}}) {
+        $fpidx++;
+        if ($atype eq $argtype) {
+          printf ", __fpt%s, %s, %s",
+            scalar @{$self->{FUNCARGTYPE}} > 1 ? $fpidx : "",
+            $argname, $argreg;
+          $fpfound = 1;
+          last;
+                }
+      }
+
+          if($fpfound eq 0) {
+        if($argtype eq "va_list") {
+          print ", long *, $argname, $argreg";
+        } else {
+          print ", $argtype, $argname, $argreg";
+        }
+          }
+      }
+        else {
+          $self->SUPER::function_arg (@_);
+      }
+    }
+
+
+    sub function_end {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+  my $fpidx     = 0;
+
+      if ($$prototype{'type'} eq 'function') {
+          if (!$prototype->{nb}) {
+            print ",\\\n      , $self->{BASE}";
+          }
+
+      for my $fa (@{$self->{FUNCARGTYPE}}) {
+        $fpidx++;
+        if(scalar @{$self->{FUNCARGTYPE}} gt 1) {
+                  $fa =~ s/\((\*+)\)/($1__fpt$fpidx)/;
+        }
+        else {
+                  $fa =~ s/\((\*+)\)/($1__fpt)/;
+        }
+                print ", $fa";
+      }
+
+      if ($self->{FUNCRETTYPE} ne '')
+      {
+        my $fr = $self->{FUNCRETTYPE};
+
+        $fr =~ s/\((\*+)\)/($1__fpr)/;
+
+        print ", $fr";
+      }
+          
+          print ", 0, 0, 0, 0, 0, 0)\n";
+      }
+      else {
+          $self->SUPER::function_end (@_);
+      }
+    }
+}
+
+### Class Macro68k: Implements m68k-only features for macro files #############
+
+BEGIN {
+    package MacroVBCC68k;
+    use vars qw(@ISA);
+    @ISA = qw( Macro );
+
+    sub new {
+      my $proto  = shift;
+      my $class  = ref($proto) || $proto;
+      my $self   = $class->SUPER::new( @_ );
+      bless ($self, $class);
+      return $self;
+    }
+    
+    sub function {
+      my $self  = shift;
+      my %params = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+      
+      my $regswap = "";
+      
+      my $function_start = $$prototype{'return'} ." __" . $$prototype{'funcname'} . "(__reg(\"a6\") struct Library * ";
+      my $function = $function_start;
+      
+      if ($$prototype{private})
+      {
+        return;
+      }
+      # Handle VarArgs functions
+      
+      if ($$prototype{'type'} eq 'varargs')
+      {
+        print "#if !defined(NO_INLINE_STDARG) && (__STDC__ == 1L) && (__STDC_VERSION__ >= 199901L)\n";
+        my $stackpush = "";
+        my $stackpop = "";
+        my $last_stdarg = $$prototype{"numargs"} - 2;
+        for(my $arg = 0; $arg < $$prototype{"numargs"}; $arg++)
+        {
+          my $reg = $$prototype{'regs'}[$arg];
+          my $type = $$prototype{'argtypes'}[$arg];
+          $function .= ", ";
+          if(defined $reg && $arg < $last_stdarg)
+          {
+            $function .= "__reg(\"" . $reg . "\") ";
+          }
+          if(defined $reg && $arg == $last_stdarg)
+          {
+            $stackpush = "\\tmove.l\\t" . $reg . ",-(a7)\\n\\tlea\\t4(a7)," . $reg . "\\n";
+            $stackpop = "\\n\\tmovea.l\\t(a7)+," . $reg;
+          }
+          $function .= $$prototype{'args'}[$arg] . " ";
+        }
+        $function .= sprintf ") = \"%s\\tjsr\\t-%ld(a6)%s\";",$stackpush,$$prototype{"bias"},$stackpop;
+        print "$function\n";
+    
+
+        print "#define $$prototype{'funcname'}(";
+        for(my $arg = 0; $arg < $last_stdarg; $arg++)
+        {
+          print $$prototype{'argnames'}[$arg];
+          if ($arg != ($$prototype{"numargs"} - 1))
+          {
+            print ", ";
+          }
+        }
+        print "...) __$$prototype{'funcname'}(" . $sfd->{BaseName} . "Base";
+      
+        for(my $arg = 0; $arg < $last_stdarg; $arg++)
+        {
+          print ", ";
+          print "(" . $$prototype{'argnames'}[$arg] . ")";
+        }
+        print ", __VA_ARGS__)\n";
+      
+        print "#endif\n\n"; 
+        return;
+      }
+      
+            
+      for(my $arg = 0; $arg < $$prototype{"numargs"}; $arg++)
+      {
+        my $reg = $$prototype{'regs'}[$arg];
+        my $type = $$prototype{'argtypes'}[$arg];
+        
+        # make sure registers are in dn/dn format (assumes they either occur in dn-dn or dn/dn depending on inopu sfd file formattng
+        
+        $reg =~ s/-/\//g;
+        
+        # check for some possible 64bit types and fix registers if possible
+        # first verify that it's not pointer the regsister isn;t an adress register and a register pair
+        # isn't already defined.
+        if(($type !~ m/\*/) && ($reg !~ m/^a.*|^d\d\/d\d$/))
+        {
+          # check for common 64 bit types
+          if(($type =~ m/int64/) || ($type =~ m/double/) || ($type =~ m/long\s*long/))
+          {
+            my $regnum = substr $reg, 1;
+            $reg .= "/d" . ($regnum + 1);
+          }
+        }
+        # if a register pair makde sure it's even aligned.
+        if($reg =~ m/^d(\d)\/d\d$/)
+        {
+          my $regnum = $1;
+          if($regnum % 2)
+          {
+            if($regswap ne "")
+            {
+              print STDERR "Can only handle 1 pair of misaligned registers in function " . $$prototype{'funcname'} ."\n";
+              return;
+            }
+            # odd register so we need to do register swap
+            $regnum--;
+            $reg = "d" . ($regnum ) . "/d" . ($regnum + 1);
+            $$prototype{'regs'}[$arg] = $reg;
+            my $found = 0;
+            for(my $i = 0; $i <  $$prototype{"numargs"}; $i++)
+            {
+              if($$prototype{'regs'}[$i] eq "d" . $regnum)
+              {
+                $found = 1;
+                $$prototype{'regs'}[$i] = "d" . ($regnum + 2);
+                last;
+              }
+            }
+            if($found)
+            {
+              # reset the function and start loop again.
+              $function = $function_start;
+              $arg = -1;
+              $regswap = "\\texg\\td" . ($regnum + 1). ",d" . ($regnum + 2) . "\\n\\texg\\td" . ($regnum) . ",d" . ($regnum + 1) . "\\n\\t";
+              next;
+            }
+            else
+            {
+              print STDERR "Unable to wrangle registers for misaligned 64bit arg in function " . $$prototype{'funcname'} ."\n";
+              return;
+            }
+          }
+        }
+        $function .= ", __reg(\"" . $reg . "\") " . $$prototype{'args'}[$arg] . " ";
+      }
+      
+           
+      $function .= sprintf ") = \"%s\\tjsr\\t-%ld(a6)\";",$regswap,$$prototype{"bias"};
+      
+      # check for return type of pointer to function
+      
+      if ($function =~ m/^(.*)\(\*\)\((.*?)\)(.*);$/)
+      {
+        my $type = $1;
+        my $returnfunc = $2;
+        my $func = $3;
+        my ($funcbody,$funcasm) = split("=",$func);
+        print "$type (*$funcbody)($returnfunc) = $funcasm;\n" 
+      }
+      else
+      {
+        print "$function\n";
+      }
+      
+      print "#define $$prototype{'funcname'}(";
+      for(my $arg = 0; $arg < $$prototype{"numargs"}; $arg++)
+      {
+        print $$prototype{'argnames'}[$arg];
+        if ($arg != ($$prototype{"numargs"} - 1))
+        {
+          print ", ";
+        }
+      }
+      print ") __$$prototype{'funcname'}(" . $sfd->{BaseName} . "Base";
+      
+      for(my $arg = 0; $arg < $$prototype{"numargs"}; $arg++)
+      {
+        print ", ";
+        print "(" . $$prototype{'argnames'}[$arg] . ")";
+      }
+      print ")\n\n";
+    }
+}
+
+### Class Proto: Create a proto file ##########################################
+
+BEGIN {
+    package Proto;
 
     sub new {
       my $proto    = shift;
@@ -4813,68 +3930,48 @@ BEGIN {
       my $self = shift;
       my $sfd  = $self->{SFD};
 
-      print "/* Automatically generated header (sfdc 1.11c)! Do not edit! */\n";
-      print "\n";
-      if ($sfd->{base} ne '') {
-          print "#ifdef __cplusplus\n";
-          print "extern \"C\" {\n";
-          print "#endif /* __cplusplus */\n";
-          print "\n";
-          print "#if defined (__libnix__)\n";
-          print "\n";
-          print "#include <stabs.h>\n";
-          print "void* $sfd->{base}" . "[2] = { 0, \"$sfd->{libname}\" };\n";
-          print "ADD2LIB($sfd->{base});\n";
-          print "\n";
-          print "#elif defined (__AMIGAOS4__)\n";
-          print "\n";
-          print "#undef __USE_INLINE__\n";
-          print "#define _NO_INLINE\n";
-          foreach my $inc (@{$$sfd{'includes'}}) {
-            print "#include $inc\n";
-          }
-          
-          foreach my $td (@{$$sfd{'typedefs'}}) {
-            print "typedef $td;\n";
-          }
+      my $base      = $$sfd{'base'};
+      my $basename  = $$sfd{'basename'};
+      my $BASENAME  = $$sfd{'BASENAME'};
+      my $BaseName  = $$sfd{'BaseName'};
+      my $basetype  = $$sfd{'basetype'};
 
+      print "/* Automatically generated header (sfdc 1.12)! Do not edit! */\n";
+      print "\n";
+      print "#ifndef PROTO_${BASENAME}_H\n";
+      print "#define PROTO_${BASENAME}_H\n";
+      print "\n";
+      print "#include <clib/${basename}_protos.h>\n";
+      print "\n";
+      print "#ifndef _NO_INLINE\n";
+      print "# if defined(__GNUC__)\n";
+      print "#  ifdef __AROS__\n";
+      print "#   include <defines/${basename}.h>\n";
+      print "#  else\n";
+      print "#   include <inline/${basename}.h>\n";
+      print "#  endif\n";
+      print "# else\n";
+      print "#  include <pragmas/${basename}_pragmas.h>\n";
+      print "# endif\n";
+      print "#endif /* _NO_INLINE */\n";
+      print "\n";
+
+      if ($base ne '') {
+          print "#ifdef __amigaos4__\n";
+          print "# include <interfaces/${basename}.h>\n";
+          print "# ifndef __NOGLOBALIFACE__\n";
+          print "   extern struct ${BaseName}IFace *I${BaseName};\n";
+          print "# endif /* __NOGLOBALIFACE__*/\n";  
+          print "#endif /* !__amigaos4__ */\n";
+          print "#ifndef __NOLIBBASE__\n";
+          print "  extern ${basetype}\n";
+          print "# ifdef __CONSTLIBBASEDECL__\n";
+          print "   __CONSTLIBBASEDECL__\n";
+          print "# endif /* __CONSTLIBBASEDECL__ */\n";
+          print "  ${base};\n";
+          print "#endif /* !__NOLIBBASE__ */\n";
           print "\n";
-          print "#include <interfaces/$sfd->{basename}.h>\n";
-          print "#include <proto/exec.h>\n";
-          print "#include <assert.h>\n";
-          print "\n";
-          print "__attribute__((weak)) $sfd->{basetype} $sfd->{base} = NULL;\n";
-          print "__attribute__((weak)) struct $sfd->{BaseName}IFace* I$sfd->{BaseName} = NULL;\n";
-          print "\n";
-          print "void __init_$sfd->{BaseName}(void) __attribute__((constructor));\n";
-          print "void __exit_$sfd->{BaseName}(void) __attribute__((destructor));\n";
-          print "\n";
-          print "void __init_$sfd->{BaseName}(void) {\n";
-          print "  if ($sfd->{base} == NULL) {\n";
-          print "    $sfd->{base} = ($sfd->{basetype}) IExec->OpenLibrary(\"$sfd->{libname}\", 0);\n";
-          print "    assert($sfd->{base} != NULL);\n";
-          print "  }\n";
-          print "  if (I$sfd->{BaseName} == NULL) {\n";
-          print "    I$sfd->{BaseName} = (struct $sfd->{BaseName}IFace*) IExec->GetInterface(";
-          print "(struct Library*) $sfd->{base}, \"main\", 1, NULL);\n";
-          print "    assert(I$sfd->{BaseName} != NULL);\n";
-          print "  }\n";
-          print "}\n";
-          print "\n";
-          print "void __exit_$sfd->{BaseName}(void) {\n";
-          print "  IExec->DropInterface((struct Interface*) I$sfd->{BaseName});\n";
-          print "  IExec->CloseLibrary((struct Library*) $sfd->{base});\n";
-          print "}\n";
-          print "\n";
-          print "\n";
-          print "#endif\n";
       }
-
-      
-      print "\n";
-      print "#ifdef __cplusplus\n";
-      print "}\n";
-      print "#endif /* __cplusplus */\n";
     }
 
     sub function {
@@ -4882,7 +3979,567 @@ BEGIN {
     }
 
     sub footer {
-      # Nothing to do here ...
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      print "#endif /* !PROTO_$$sfd{'BASENAME'}_H */\n";
+    }
+}
+
+### Class SASPragmas: Create a SAS/C pragmas file #############################
+
+BEGIN {
+    package SASPragmas;
+
+    sub new {
+      my $proto  = shift;
+      my %params = @_;
+      my $class  = ref($proto) || $proto;
+      my $self   = {};
+      $self->{SFD} = $params{'sfd'};
+      bless ($self, $class);
+      return $self;
+    }
+
+    sub header {
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      my $id = $$sfd{'id'};
+      my $v  = $id;
+      my $d  = $id;
+
+      $v =~ s/^\$[I]d: .*? ([0-9.]+).*/$1/;
+      $d =~ s,^\$[I]d: .*? [0-9.]+ (\d{4})/(\d{2})/(\d{2}).*,($3.$2.$1),;
+
+      print "/* Automatically generated header (sfdc 1.12)! Do not edit! */\n";
+      print "#ifndef PRAGMAS_$sfd->{BASENAME}_PRAGMAS_H\n";
+      print "#define PRAGMAS_$sfd->{BASENAME}_PRAGMAS_H\n";
+      print "\n";
+      print "/*\n";
+      print "**   \$VER: $$sfd{'basename'}_pragmas.h $v $d\n";
+      print "**\n";
+      print "**   Direct ROM interface (pragma) definitions.\n";
+      print "**\n";
+      print "**   $$sfd{'copyright'}\n";
+      print "**       All Rights Reserved\n";
+      print "*/\n";
+      print "\n";
+
+      print "#if defined(LATTICE) || defined(__SASC) || defined(_DCC)\n";
+      print "#ifndef __CLIB_PRAGMA_LIBCALL\n";
+      print "#define __CLIB_PRAGMA_LIBCALL\n";
+      print "#endif /* __CLIB_PRAGMA_LIBCALL */\n";
+      print "#else /* __MAXON__, __STORM__ or AZTEC_C */\n";
+      print "#ifndef __CLIB_PRAGMA_AMICALL\n";
+      print "#define __CLIB_PRAGMA_AMICALL\n";
+      print "#endif /* __CLIB_PRAGMA_AMICALL */\n";
+      print "#endif /* */\n";
+      print "\n";
+      print "#if defined(__SASC_60) || defined(__STORM__)\n";
+      print "#ifndef __CLIB_PRAGMA_TAGCALL\n";
+      print "#define __CLIB_PRAGMA_TAGCALL\n";
+      print "#endif /* __CLIB_PRAGMA_TAGCALL */\n";
+      print "#endif /* __MAXON__, __STORM__ or AZTEC_C */\n";
+      print "\n";
+    }
+
+    sub function {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      # Don't process private functions
+      if ($prototype->{private}) {
+          return;
+      }
+
+      my $regs = '';
+      
+      foreach my $reg (@{$prototype->{regs}}) {
+          my $num;
+          
+          if ($reg =~ /^d[0-7]$/) {
+            ($num) = $reg =~ /^d(.)/;
+          }
+          elsif ($reg =~ /^a[0-9]$/) {
+            ($num) = $reg =~ /^a(.)/;
+            $num += 8;
+          }
+          else {
+            die;
+          }
+
+          $regs = sprintf "%x$regs", $num;
+      }
+
+      $regs .= '0'; #Result in d0
+      $regs .= $prototype->{numregs};
+      
+      if ($prototype->{type} eq 'function') {
+          # Always use libcall, since access to 4 is very expensive
+
+          print "#ifdef __CLIB_PRAGMA_LIBCALL\n";
+          print " #pragma libcall $sfd->{base} $prototype->{funcname} ";
+          printf "%x $regs\n", $prototype->{bias};
+          print "#endif /* __CLIB_PRAGMA_LIBCALL */\n";
+          print "#ifdef __CLIB_PRAGMA_AMICALL\n";
+          printf " #pragma amicall($sfd->{base}, 0x%x, $prototype->{funcname}(",
+            $prototype->{bias};
+          print join (',', @{$prototype->{regs}}) . "))\n";
+          print "#endif /* __CLIB_PRAGMA_AMICALL */\n";
+      }
+      elsif ($prototype->{type} eq 'varargs') {
+          print "#ifdef __CLIB_PRAGMA_TAGCALL\n";
+          print " #ifdef __CLIB_PRAGMA_LIBCALL\n";
+          print "  #pragma tagcall $sfd->{base} $prototype->{funcname} ";
+          printf "%x $regs\n", $prototype->{bias};
+          print " #endif /* __CLIB_PRAGMA_LIBCALL */\n";
+          print " #ifdef __CLIB_PRAGMA_AMICALL\n";
+          printf "  #pragma tagcall($sfd->{base}, 0x%x, $prototype->{funcname}(",
+            $prototype->{bias};
+          print join (',', @{$prototype->{regs}}) . "))\n";
+          print " #endif /* __CLIB_PRAGMA_AMICALL */\n";
+          print "#endif /* __CLIB_PRAGMA_TAGCALL */\n";
+      }
+      elsif ($prototype->{type} eq 'cfunction') {
+          # Do nothing
+      }
+      else {
+          print STDERR "$prototype->{funcname}: Unsupported function " .
+            "type.\n";
+          die;
+      }
+    }
+    
+    sub footer {
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      print "\n";
+      print "#endif /* PRAGMAS_$sfd->{BASENAME}_PRAGMAS_H */\n";
+    }
+}
+
+### Class Stub: Create a generic stub file ####################################
+
+BEGIN {
+    package Stub;
+
+    sub new {
+      my $proto  = shift;
+      my %params = @_;
+      my $class  = ref($proto) || $proto;
+      my $self   = {};
+      $self->{SFD}     = $params{'sfd'};
+      $self->{NEWFILE} = 0;
+      bless ($self, $class);
+      return $self;
+    }
+
+    sub header {
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      $self->{NEWFILE} = 1;
+
+      print "/* Automatically generated stubs (sfdc 1.12)! Do not edit! */\n";
+      print "\n";
+
+      foreach my $inc (@{$$sfd{'includes'}}) {
+          print "#include $inc\n";
+      }
+
+      foreach my $td (@{$$sfd{'typedefs'}}) {
+          print "typedef $td;\n";
+      }
+
+      print "\n";
+      print "#ifdef __cplusplus\n";
+      print "extern \"C\" {\n";
+      print "#endif /* __cplusplus */\n";
+      print "\n";
+
+      if ($$sfd{'base'} ne '') { 
+          print "#ifndef BASE_EXT_DECL\n";
+          print "#define BASE_EXT_DECL\n";
+          print "#define BASE_EXT_DECL0 extern $$sfd{'basetype'} " .
+            "$$sfd{'base'};\n";
+          print "#endif /* !BASE_EXT_DECL */\n";
+          print "#ifndef BASE_PAR_DECL\n";
+          print "#define BASE_PAR_NAME\n";
+          print "#define BASE_PAR_DECL\n";
+          print "#define BASE_PAR_DECL0 void\n";
+          print "#endif /* !BASE_PAR_DECL */\n";
+          print "#ifndef BASE_NAME\n";
+          print "#define BASE_NAME $$sfd{'base'}\n";
+          print "#endif /* !BASE_NAME */\n";
+          print "\n";
+          print "BASE_EXT_DECL0\n";
+          print "\n";
+      }
+
+    }
+
+    sub function {
+      my $self     = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      # Don't process private functions
+      if ($prototype->{private}) {
+          return;
+      }
+      
+      $self->function_proto (prototype => $prototype, decl_regular => $self->{NEWFILE} );
+      $self->function_start (prototype => $prototype);
+      for my $i (0 .. $$prototype{'numargs'} - 1 ) {
+          $self->function_arg (prototype => $prototype,
+                         argtype   => $$prototype{'argtypes'}[$i],
+                         argname   => $$prototype{'___argnames'}[$i],
+                         argreg    => $$prototype{'regs'}[$i],
+                         argnum    => $i );
+      }
+      $self->function_end (prototype => $prototype);
+
+      print "\n";
+
+      $self->{NEWFILE} = 0;
+    }
+
+    sub footer {
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      print "\n";
+      print "#undef BASE_EXT_DECL\n";
+      print "#undef BASE_EXT_DECL0\n";
+      print "#undef BASE_PAR_NAME\n";
+      print "#undef BASE_PAR_DECL\n";
+      print "#undef BASE_PAR_DECL0\n";
+      print "#undef BASE_NAME\n";
+      print "\n";
+      print "#ifdef __cplusplus\n";
+      print "}\n";
+      print "#endif /* __cplusplus */\n";
+    }
+
+
+    # Helper functions
+    
+    sub function_proto {
+      my $self     = shift;
+      my %params   = @_;
+      my $prototype    = $params{'prototype'};
+      my $decl_regular = $params{'decl_regular'};
+      my $sfd      = $self->{SFD};
+
+      if ($prototype->{type} eq 'varargs' && $decl_regular) {
+          my $rproto = $prototype->{real_prototype};
+
+          print "__inline $$rproto{'return'} $$rproto{'funcname'}(";
+          if (!$prototype->{nb}) {
+            if ($$rproto{'numargs'} == 0) {
+                print "BASE_PAR_DECL0";
+            }
+            else {
+                print "BASE_PAR_DECL ";
+            }
+          }
+          print join (', ', @{$$rproto{'___args'}});
+
+          print ");\n";
+          print "\n";
+      }
+
+      if ($prototype->{type} eq 'cfunction' &&
+          $prototype->{argnames}[$#{@{$prototype->{argnames}}}] eq '...') {
+          print "#if 0\n";
+          print "/* Unsupported */\n";
+      }
+
+      # Declare structs in case some ==include directive is missing
+      for my $argtype (@{$prototype->{argtypes}}) {
+          my $struct;
+
+          (undef, $struct) = ( $argtype =~ /\s*(const)?\s*struct\s*(\w+).*/) and
+            printf "struct $struct;\n";
+      }
+
+
+      my $rettype_prefix = $prototype->{return};
+      my $rettype_postfix = "";
+      if ($prototype->{return} =~ /(.*\(\*+)(\).*)/) {
+        $rettype_prefix = $1;
+        $rettype_postfix = $2;
+      }
+
+      print "__inline $rettype_prefix\n";
+      print "$$prototype{'funcname'}(";
+      if (!$prototype->{nb}) {
+          if ($$prototype{'numargs'} == 0) {
+            print "BASE_PAR_DECL0";
+          }
+          else {
+            print "BASE_PAR_DECL ";
+          }
+      }
+      print join (', ', @{$$prototype{'___args'}});
+      print ")$rettype_postfix";
+      
+    }
+
+    sub function_start {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+      
+      print "\n";
+      print "{\n";
+
+      if ($$prototype{'type'} eq 'varargs') {
+          print "  return $$prototype{'real_funcname'}(BASE_PAR_NAME ";
+      }
+      elsif ($prototype->{type} eq 'cfunction') {
+          if (!$prototype->{nb}) {
+            print "  BASE_EXT_DECL\n";
+          }
+
+          my $argtypes = join (', ',@{$$prototype{'argtypes'}});
+
+          if ($argtypes eq '') {
+            if ($prototype->{nb}) {
+                $argtypes = "void";
+            }
+          }
+          else {
+            if (!$prototype->{nb}) {
+                $argtypes = "$sfd->{basetype}, $argtypes";
+            }
+          }
+
+
+          # Skip jmp instruction (is m68k ILLEGAL in MOS)
+          my $offs = $$prototype{'bias'} - 2;
+          
+          print "  $$prototype{'return'} (*_func) ($argtypes) = \n";
+          print "    ($$prototype{'return'} (*) ($argtypes))\n";
+          print "    *((ULONG*) (((char*) BASE_NAME) - $offs));\n";
+          print "  return (*_func)(";
+
+          if (!$prototype->{nb}) {
+            print "BASE_NAME";
+            print ", " unless $prototype->{numargs} == 0;
+          }
+      }
+      else {
+          print STDERR "$prototype->{funcname}: Unhandled.\n";
+          die;
+      }
+    }
+
+    sub function_arg {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $argtype   = $params{'argtype'};
+      my $argname   = $params{'argname'};
+      my $argreg    = $params{'argreg'};
+      my $argnum    = $params{'argnum'};
+      my $sfd       = $self->{SFD};
+
+      my $argstr;
+      
+      if ($$prototype{'type'} eq 'varargs') {
+          if ($prototype->{subtype} eq 'printfcall') {
+            if ($argnum < $$prototype{'numargs'} - 1) {
+                $argstr = $argname;
+            }
+            elsif ($argnum == $$prototype{'numargs'} - 1) {
+                my $vartype  =
+                  $$prototype{'argtypes'}[$$prototype{'numargs'} - 1];
+                my $argnm =
+                  $$prototype{'___argnames'}[$$prototype{'numargs'} - 2];
+                $argstr = "($vartype) (&$argnm + 1)";
+            }
+            else {
+                $argstr = '';
+            }
+          }
+          else {
+            # tagcall/methodcall
+            if ($argnum < $$prototype{'numargs'} - 2) {
+                $argstr = $argname;
+            }
+            elsif ($argnum == $$prototype{'numargs'} - 2) {
+                my $vartype =
+                  $$prototype{'argtypes'}[$$prototype{'numargs'} - 1];
+                $argstr = "($vartype) &$argname";
+            }
+            else {
+                $argstr = '';
+            }
+          }
+      }
+      elsif ($prototype->{type} eq 'cfunction') {
+          $argstr = $argname;
+      }
+      else {
+          print STDERR "$prototype->{funcname}: Unhandled.\n";
+          die;
+      }
+
+      if ($argstr ne '') {
+          print ($argnum != 0 ? ", $argstr" : $argstr);
+      }
+    }
+
+    sub function_end {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+      
+      print ");\n";
+      print "}\n";
+
+      if ($prototype->{type} eq 'cfunction' &&
+          $prototype->{argnames}[$#{@{$prototype->{argnames}}}] eq '...') {
+          print "/* Unsupported */\n";
+          print "#endif\n";
+      }
+    }
+}
+
+### Class Stub68k: Create a 68k stub file #####################################
+
+BEGIN {
+    package Stub68k;
+    use vars qw(@ISA);
+    @ISA = qw( Stub );
+
+    sub new {
+      my $proto  = shift;
+      my $class  = ref($proto) || $proto;
+      my $self   = $class->SUPER::new( @_ );
+      bless ($self, $class);
+      return $self;
+    }
+
+    sub function_start {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      if ($prototype->{type} eq 'function') {
+          print "\n";
+          print "{\n";
+
+          if (!$prototype->{nb}) {
+            print "  BASE_EXT_DECL\n";
+          }
+          if (!$prototype->{nr}) {
+            my $rettype_prefix = $prototype->{return};
+            my $rettype_postfix = "";
+            if ($prototype->{return} =~ /(.*\(\*+)(\).*)/) {
+              $rettype_prefix = $1;
+              $rettype_postfix = $2;
+            }
+            print "  register $rettype_prefix _res $rettype_postfix __asm(\"d0\");\n";
+          }
+          if (!$prototype->{nb}) {
+            print "  register $sfd->{basetype} _base __asm(\"a6\") " .
+                "= BASE_NAME;\n";
+          }
+      }
+      else {
+          $self->SUPER::function_start (@_);
+      }
+    }
+
+    sub function_arg {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $argtype   = $params{'argtype'};
+      my $argname   = $params{'argname'};
+      my $argreg    = $params{'argreg'};
+      my $argnum    = $params{'argnum'};
+      my $sfd       = $self->{SFD};
+
+      if ($$prototype{'type'} eq 'function') {
+          if ($argreg eq 'a4' || $argreg eq 'a5') {
+            $argreg = 'd7';
+          }
+          
+          print "  register $prototype->{args}[$argnum] __asm(\"$argreg\") " .
+            "= $argname;\n";
+      }
+      else {
+          $self->SUPER::function_arg (@_);
+      }
+    }
+    
+    sub function_end {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      
+      if ($$prototype{'type'} eq 'function') {
+          my $regs      = join(',', @{$$prototype{'regs'}});
+          my $a4        = $regs =~ /a4/;
+          my $a5        = $regs =~ /a5/;
+
+          if ($a4 && $a5 && !$quiet) {
+            print STDERR "$$prototype{'funcname'} uses both a4 and a5 " .
+                "for arguments. This is not going to work.\n";
+          }
+
+          if ($a4) {
+            print "  __asm volatile (\"exg d7,a4\\n\\tjsr a6@(-" .
+                "$prototype->{bias}:W)\\n\\texg d7,a4\"\n";
+          }
+          elsif ($a5) {
+            print "  __asm volatile (\"exg d7,a5\\n\\tjsr a6@(-" .
+                "$prototype->{bias}:W)\\n\\texg d7,a5\"\n";
+          }
+          else {
+            print "  __asm volatile (\"jsr a6@(-$prototype->{bias}:W)\"\n";
+          }
+          print "  : " .
+            ($prototype->{nr} ? "/* No output */" : '"=r" (_res)') . "\n";
+          print "  : ";
+          if (!$prototype->{nb}) {
+            print '"r" (_base)';
+          }
+
+          for my $i (0 .. $prototype->{numargs} - 1) {
+            if ($i != 0 || !$prototype->{nb}) {
+                print ", ";
+            }
+            
+            print '"r" (' . $prototype->{argnames}[$i] . ')';
+          }
+
+          print "\n";
+          print '  : "d0", "d1", "a0", "a1", "fp0", "fp1", "cc", "memory");';
+          print "\n";
+          
+          if (!$prototype->{nr}) {
+            print "  return _res;\n";
+          }
+
+          print "}\n";
+      }
+      else {
+          $self->SUPER::function_end (@_);
+      }
     }
 }
 
@@ -5181,7 +4838,7 @@ BEGIN {
 
       my @newargs;
 
-      for my $i (0 .. $#{@{$prototype->{___args}}}) {
+      for my $i (0 .. $#{$prototype->{___args}}) {
           if ($prototype->{subtype} ne 'methodcall' ||
             $i != $prototype->{numargs} - 2 ) {
             push @newargs, $prototype->{___args}[$i];
@@ -5194,12 +4851,12 @@ BEGIN {
     }
 }
 
-### Class Macro68k: Implements m68k-only features for macro files #############
+### Class StubAROS: Create an AROS stub file ##################################
 
 BEGIN {
-    package Macro68k;
+    package StubAROS;
     use vars qw(@ISA);
-    @ISA = qw( MacroLP );
+    @ISA = qw( Stub );
 
     sub new {
       my $proto  = shift;
@@ -5209,135 +4866,94 @@ BEGIN {
       return $self;
     }
 
+    sub header {
+      my $self = shift;
+      
+      $self->SUPER::header (@_);
+
+      print "#include <aros/libcall.h>\n";
+      print "\n";
+    }
+
     sub function_start {
       my $self      = shift;
       my %params    = @_;
       my $prototype = $params{'prototype'};
       my $sfd       = $self->{SFD};
 
-      if ($$prototype{'type'} eq 'function') {
+      if ($prototype->{type} eq 'function') {
+          print "\n";
+          print "{\n";
 
-          my $regs      = join(',', @{$$prototype{'regs'}});
-          my $argtypes  = join(',', @{$$prototype{'argtypes'}});
-          my $a4        = $regs =~ /a4/;
-          my $a5        = $regs =~ /a5/;
-          my $fp        = $argtypes =~ /\(\*+\)/;
-      my $return    = $$prototype{'return'};
-      my $numfp     = 0;
-
-          if ($a4 && $a5 && !$quiet) {
-            print STDERR "$$prototype{'funcname'} uses both a4 and a5 " .
-                "for arguments. This is not going to work.\n";
-          }
-      
-      @{$self->{FUNCARGTYPE}} = ();
-          for my $argtype (@{$$prototype{'argtypes'}}) {
-            if ($argtype =~ /\(\*+\)/) {
-                @{$self->{FUNCARGTYPE}}[$numfp] = $argtype;
-        $numfp++;
-            }
+          if (!$prototype->{nb}) {
+            print "  BASE_EXT_DECL\n";
           }
 
-      $self->{FUNCRETTYPE} = '';
-      if($return =~ /\(\*+\)/)
-      {
-        $self->{FUNCRETTYPE} = $return;
-      }
-          
-          printf "      LP%d%s%s%s%s%s%s%s(0x%x, ", $$prototype{'numargs'},
-          $prototype->{nr} ? "NR" : "",
-          $prototype->{nb} ? "NB" : "",
-          $a4 ? "A4" : "", $a5 ? "A5" : "",
-          scalar @{$self->{FUNCARGTYPE}} > 0 ? "FP" : "",
-          scalar @{$self->{FUNCARGTYPE}} > 1 ? scalar @{$self->{FUNCARGTYPE}} : "",
-      $self->{FUNCRETTYPE} ne '' ? "FR" : "",
-          $$prototype{'bias'};
-
-      if ($self->{FUNCRETTYPE})
-      {
-        print "__fpr, "; 
-      }
-          elsif (!$prototype->{nr}) {
-            print "$$prototype{'return'}, ";
+          if (!$prototype->{nr}) {
+            print "  $prototype->{return} _res = ($prototype->{return}) ";
+          }
+          else {
+            print "  ";
           }
 
-          print "$$prototype{'funcname'} ";
+          printf "AROS_LC%d%s($prototype->{return}, $prototype->{funcname},\n",
+          $prototype->{numargs}, $prototype->{nb} ? "I" : "";
       }
       else {
           $self->SUPER::function_start (@_);
       }
     }
 
-
     sub function_arg {
       my $self      = shift;
       my %params    = @_;
       my $prototype = $params{'prototype'};
+      my $argtype   = $params{'argtype'};
+      my $argname   = $params{'argname'};
+      my $argreg    = $params{'argreg'};
+      my $argnum    = $params{'argnum'};
+      my $sfd       = $self->{SFD};
 
       if ($$prototype{'type'} eq 'function') {
-          my $argtype   = $params{'argtype'};
-          my $argname   = $params{'argname'};
-          my $argreg    = $params{'argreg'};
-      my $fpidx     = 0;
-      my $fpfound   = 0;
-          
-          if ($argreg eq 'a4' || $argreg eq 'a5') {
-            $argreg = 'd7';
-          }
-          
-      for my $atype (@{$self->{FUNCARGTYPE}}) {
-        $fpidx++;
-        if ($atype eq $argtype) {
-          printf ", __fpt%s, %s, %s",
-            scalar @{$self->{FUNCARGTYPE}} > 1 ? $fpidx : "",
-            $argname, $argreg;
-          $fpfound = 1;
-          last;
-                }
+          print "    AROS_LCA($argtype, $argname, " . (uc $argreg) . "),\n";
       }
-
-          if($fpfound eq 0) {
-        print ", $argtype, $argname, $argreg";
-          }
-      }
-        else {
+      else {
           $self->SUPER::function_arg (@_);
       }
     }
-
+    
     sub function_end {
       my $self      = shift;
       my %params    = @_;
       my $prototype = $params{'prototype'};
       my $sfd       = $self->{SFD};
-  my $fpidx     = 0;
-
+      
       if ($$prototype{'type'} eq 'function') {
-          if (!$prototype->{nb}) {
-            print ",\\\n      , $self->{BASE}";
+          if ($prototype->{nb}) {
+            my $bt = "/* bt */";
+            my $bn = "/* bn */";
+
+            for my $i (0 .. $#{$prototype->{regs}}) {
+                if ($prototype->{regs}[$i] eq 'a6') {
+                  $bt = $prototype->{argtypes}[$i];
+                  $bn  =$prototype->{___argnames}[$i];
+                  last;
+                }
+            }
+            
+            printf "    $bt, $bn, %d, $sfd->{Basename});\n",
+            $prototype->{bias} / 6;
+          }
+          else {
+            printf "    $sfd->{basetype}, BASE_NAME, %d, $sfd->{Basename});\n",
+            $prototype->{bias} / 6;
           }
 
-      for my $fa (@{$self->{FUNCARGTYPE}}) {
-        $fpidx++;
-        if(scalar @{$self->{FUNCARGTYPE}} gt 1) {
-                  $fa =~ s/\((\*+)\)/($1__fpt$fpidx)/;
-        }
-        else {
-                  $fa =~ s/\((\*+)\)/($1__fpt)/;
-        }
-                print ", $fa";
-      }
-
-      if ($self->{FUNCRETTYPE} ne '')
-      {
-        my $fr = $self->{FUNCRETTYPE};
-
-        $fr =~ s/\((\*+)\)/($1__fpr)/;
-
-        print ", $fr";
-      }
+          if (!$prototype->{nr}) {
+            print "  return _res;\n";
+          }
           
-          print ")\n";
+          print "};\n";
       }
       else {
           $self->SUPER::function_end (@_);
@@ -5345,44 +4961,457 @@ BEGIN {
     }
 }
 
-### Class Dump: Dump SFD info #################################################
+### Class StubAmithlon: Create a Amithlon stub file ###########################
 
 BEGIN {
-    package Dump;
+    package StubAmithlon;
+    use vars qw(@ISA);
+    @ISA = qw( Stub );
 
     sub new {
-      my $proto    = shift;
-      my %params   = @_;
-      my $class    = ref($proto) || $proto;
-      my $self     = {};
-      $self->{SFD} = $params{'sfd'};
+      my $proto  = shift;
+      my $class  = ref($proto) || $proto;
+      my $self   = $class->SUPER::new( @_ );
       bless ($self, $class);
       return $self;
     }
 
     sub header {
       my $self = shift;
-      my $sfd  = $self->{SFD};
+      
+      $self->SUPER::header (@_);
 
-      print "SFD information\n";
-      print "---------------\n";
-      print "Copyright:       $$sfd{'copyright'}\n";
-      print "RCS ID:                $$sfd{'id'}\n";
-      print "Module name:           $$sfd{'libname'}\n";
-      print "Module base:           $$sfd{'base'}\n";
-      print "Module base type:      $$sfd{'basetype'}\n";
-      print "Module base names:     $$sfd{'basename'}, $$sfd{'BASENAME'}, ";
-      print "$$sfd{'Basename'}\n";
+      print "#ifndef __INLINE_MACROS_H\n";
+      print "#define __INLINE_MACROS_H\n";
       print "\n";
-      print "Include files:         ";
-      print join ("\n               ", @{$$sfd{'includes'}});
+      print "#ifndef __INLINE_MACROS_H_REGS\n";
+      print "#define __INLINE_MACROS_H_REGS\n";
       print "\n";
-      print "Type definitions:            ";
-      if ($#{\@{$sfd->{typedefs}}} != -1) {
-          print join ("\n                 ", @{$$sfd{'typedefs'}});
+      print "#include <exec/types.h>\n";
+      print "\n";
+      print "struct _Regs {\n";
+      print "     ULONG d0;\n";
+      print "     ULONG d1;\n";
+      print "     ULONG d2;\n";
+      print "     ULONG d3;\n";
+      print "     ULONG d4;\n";
+      print "     ULONG d5;\n";
+      print "     ULONG d6;\n";
+      print "     ULONG d7;\n";
+      print "     ULONG a0;\n";
+      print "     ULONG a1;\n";
+      print "     ULONG a2;\n";
+      print "     ULONG a3;\n";
+      print "     ULONG a4;\n";
+      print "     ULONG a5;\n";
+      print "     ULONG a6;\n";
+      print "     ULONG a7;\n";
+      print "};\n";
+      print "\n";
+      print "#endif /* __INLINE_MACROS_H_REGS */\n";
+      print "\n";
+      print "ULONG _CallLib68k(struct _Regs*,LONG) " .
+          "__attribute__((__regparm__(3)));\n";
+      print "\n";
+      print "#endif /* __INLINE_MACROS_H */\n";
+      print "\n";
+    }
+    
+    sub function_start {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      if ($prototype->{type} eq 'function') {
+          print "\n";
+          print "{\n";
+
+          if (!$prototype->{nb}) {
+            print "  BASE_EXT_DECL\n";
+          }
+          if (!$prototype->{nr}) {
+            print "  $prototype->{return} _res;\n";
+          }
+
+          print "  struct _Regs _regs;\n";
       }
+      else {
+          $self->SUPER::function_start (@_);
+      }
+    }
+
+    sub function_arg {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $argtype   = $params{'argtype'};
+      my $argname   = $params{'argname'};
+      my $argreg    = $params{'argreg'};
+      my $argnum    = $params{'argnum'};
+
+      if ($$prototype{'type'} eq 'function') {
+          printf "  __asm(\"movl %%1,%%0\":\"=m\"(_regs.%s)" .
+            ":\"ri\"((ULONG)%s));\n", $argreg, $argname;
+      }
+      else {
+          $self->SUPER::function_arg (@_);
+      }
+    }
+    
+    sub function_end {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      
+      if ($$prototype{'type'} eq 'function') {
+          if (!$prototype->{nb}) {
+            print "  __asm(\"movl %1,%0\":\"=m\"(_regs.a6)" .
+                ":\"ri\"((ULONG)(BASE_NAME)));\n";
+          }
+
+          print "  ";
+          
+          if (!$prototype->{nr}) {
+            print "_res = ($prototype->{return}) ";
+          }
+
+          print "_CallLib68k(&_regs,-$prototype->{bias});\n";
+          
+          if (!$prototype->{nr}) {
+            print "  return _res;\n";
+          }
+
+          print "}\n";
+      }
+      else {
+          $self->SUPER::function_end (@_);
+      }
+    }
+}
+
+### Class StubMOS: Create a MorphOS stub file #################################
+
+BEGIN {
+    package StubMOS;
+    use vars qw(@ISA);
+    @ISA = qw( Stub );
+
+    sub new {
+      my $proto  = shift;
+      my $class  = ref($proto) || $proto;
+      my $self   = $class->SUPER::new( @_ );
+      bless ($self, $class);
+      return $self;
+    }
+
+    sub header {
+      my $self = shift;
+      
+      $self->SUPER::header (@_);
+
       print "\n";
+      print "#include <emul/emulregs.h>\n";
+      print "#include <stdarg.h>\n";
       print "\n";
+    }
+
+    sub function_proto {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+
+      if ($prototype->{type} eq 'varargs') {
+
+          if ($prototype->{subtype} ne 'tagcall') {
+            # We have to add the attribute to ourself first
+          
+            $self->special_function_proto (@_);
+            print " __attribute__((varargs68k));\n";
+            print "\n";
+            $self->special_function_proto (@_);
+          }
+      }
+      else {
+          $self->SUPER::function_proto (@_);
+      }
+    }
+    
+    sub function_start {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      if ($prototype->{type} eq 'function') {
+          print "\n";
+          print "{\n";
+
+          if (!$prototype->{nb}) {
+            print "  BASE_EXT_DECL\n";
+          }
+      }
+      elsif ($prototype->{type} eq 'varargs') {
+          if ($prototype->{subtype} ne 'tagcall') {
+            my $na;
+
+            if ($prototype->{subtype} eq 'printfcall') {
+                $na = $prototype->{numargs} - 2;
+            }
+            else {
+                # methodcall: first vararg is removed
+                $na = $prototype->{numargs} - 3;
+            }
+            
+            print "\n";
+            print "{\n";
+            print "  va_list _va;\n";
+            print "  va_start (_va, $prototype->{___argnames}[$na]);\n";
+            print "  return $$prototype{'real_funcname'}(BASE_PAR_NAME ";
+          }
+          else {
+            # Shamelessly stolen from fd2inline ...
+            
+            # number of regs that contain varargs
+            my $n = 9 - $prototype->{numregs};
+
+            # add 4 bytes if that's an odd number, to avoid splitting a tag
+            my $d = $n & 1 ? 4 : 0;
+
+            # offset of the start of the taglist
+            my $taglist = 8;
+
+            # size of the stack frame
+            my $local = ($taglist + $n * 4 + $d + 8 + 15) & ~15;
+
+            #  Stack frame:
+            #
+            #   0 -  3: next frame ptr
+            #   4 -  7: save lr
+            #   8 -  8+n*4+d+8-1: tag list start
+            #   ? - local-1: padding
+
+            print  "__asm(\"\n";
+            print  "    .align      2\n";
+            print  "    .globl      $prototype->{funcname}\n";
+            print  "    .type $prototype->{funcname},\@function\n";
+            print  "$prototype->{funcname}:\n";
+            print  "    stwu  1,-$local(1)\n";
+            print  "    mflr  0\n";
+            printf "    stw   0,%d(1)\n", $local + 4;
+
+            # If n is odd, one tag is split between regs and stack.
+            # Copy its ti_Data together with the ti_Tag.
+          
+            if ($d != 0) {
+                # read ti_Data
+                printf "      lwz   0,%d(1)\n", $local + 8;
+            }
+
+            # Save the registers
+          
+            for my $count ($prototype->{numregs} .. 8) {
+                printf "      stw   %d,%d(1)\n",
+                $count + 2,
+                ($count - $prototype->{numregs}) * 4 + $taglist;
+            }
+
+            if ($d != 0) {
+                # write ti_Data
+                printf "      stw   0,%d(1)\n", $taglist + $n * 4;
+            }
+
+            # Add TAG_MORE
+
+            print  "    li    11,2\n";
+            printf "    addi  0,1,%d\n", $local + 8 + $d;
+            printf "    stw   11,%d(1)\n", $taglist + $n * 4 + $d;
+            printf "    stw   0,%d(1)\n", $taglist + $n * 4 + $d + 4;
+
+            # vararg_reg = &saved regs
+          
+            printf "    addi  %d,1,%d\n",
+            $prototype->{numregs} + 2, $taglist;
+            print "     bl    $prototype->{real_funcname}\n";
+          }
+      }
+      else {
+          $self->SUPER::function_start (@_);
+      }
+    }
+
+    sub function_arg {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $argtype   = $params{'argtype'};
+      my $argname   = $params{'argname'};
+      my $argreg    = $params{'argreg'};
+      my $argnum    = $params{'argnum'};
+      my $sfd       = $self->{SFD};
+
+      if ($$prototype{'type'} eq 'function') {
+          print "  REG_" . (uc $argreg) . " = (ULONG) $argname;\n";
+      }
+      elsif ($prototype->{type} eq 'varargs') {
+          if ($prototype->{subtype} eq 'tagcall') {
+          }
+          elsif ($prototype->{subtype} eq 'methodcall' &&
+               $argnum == $prototype->{numargs} - 2) {
+            # Nuke it!
+          }
+          elsif ($argnum == $prototype->{numargs} - 1) {
+            my $vt  = $$prototype{'argtypes'}[$$prototype{'numargs'} - 1];
+            print ", ($vt) _va->overflow_arg_area";
+          }
+          else {
+            $self->SUPER::function_arg (@_);
+          }
+      }
+      else {
+          $self->SUPER::function_arg (@_);
+      }
+    }
+    
+    sub function_end {
+      my $self      = shift;
+      my %params    = @_;
+      my $prototype = $params{'prototype'};
+      my $sfd       = $self->{SFD};
+
+      if ($$prototype{'type'} eq 'function') {
+          if (!$prototype->{nb}) {
+            print "  REG_A6 = (ULONG) BASE_NAME;\n";
+          }
+
+          print "  ";
+          
+          if (!$prototype->{nr}) {
+            print "return ($prototype->{return}) ";
+          }
+
+          print "(*MyEmulHandle->EmulCallDirectOS)(-$prototype->{bias});\n";
+          print "}\n";
+      }
+      elsif ($prototype->{type} eq 'varargs') {
+          if ($prototype->{subtype} eq 'tagcall') {
+            # number of regs that contain varargs
+            my $n = 9 - $prototype->{numregs};
+
+            # add 4 bytes if that's an odd number, to avoid splitting a tag
+            my $d = $n & 1 ? 4 : 0;
+
+            # offset of the start of the taglist
+            my $taglist = 8;
+
+            # size of the stack frame
+            my $local = ($taglist + $n * 4 + $d + 8 + 15) & ~15;
+
+            # clear stack frame & return
+            printf "    lwz   0,%d(1)\n", $local + 4;
+            print  "    mtlr  0\n";
+            printf "    addi  1,1,%d\n", $local;
+            print  "    blr\n";
+            print  ".L$prototype->{funcname}e1:\n";
+            print  "    .size $prototype->{funcname}," .
+                ".L$prototype->{funcname}e1-$prototype->{funcname}\n";
+
+            print "\");\n";
+          }
+          else {
+            print ");\n";
+            print "}\n";
+          }
+      }
+      else {
+          $self->SUPER::function_end (@_);
+      }
+    }
+
+
+    sub special_function_proto {
+      my $self     = shift;
+      my %params   = @_;
+      my $prototype    = $params{'prototype'};
+      my $decl_regular = $params{'decl_regular'};
+      my $sfd      = $self->{SFD};
+
+      if ($prototype->{type} eq 'varargs' && $decl_regular) {
+          my $rproto = $prototype->{real_prototype};
+
+          print "$$rproto{'return'} $$rproto{'funcname'}(";
+          if (!$prototype->{nb}) {
+            if ($$rproto{'numargs'} == 0) {
+                print "BASE_PAR_DECL0";
+            }
+            else {
+                print "BASE_PAR_DECL ";
+            }
+          }
+          print join (', ', @{$$rproto{'___args'}});
+
+          print ");\n";
+          print "\n";
+      }
+      
+      print "$$prototype{'return'}\n";
+      print "$$prototype{'funcname'}(";
+      if (!$prototype->{nb}) {
+          if ($$prototype{'numargs'} == 0) {
+            print "BASE_PAR_DECL0";
+          }
+          else {
+            print "BASE_PAR_DECL ";
+          }
+      }
+
+      my @newargs;
+
+      for my $i (0 .. $#{$prototype->{___args}}) {
+          if ($prototype->{subtype} ne 'methodcall' ||
+            $i != $prototype->{numargs} - 2 ) {
+            push @newargs, $prototype->{___args}[$i];
+          }
+      }
+
+      print join (', ', @newargs);
+      print ")";
+      
+    }
+}
+
+### Class Verify: Verify SFD info #################################################
+
+BEGIN {
+    package Verify;
+
+    sub new {
+      my $proto       = shift;
+      my %params      = @_;
+      my $class       = ref($proto) || $proto;
+      my $self        = {};
+      $self->{SFD}    = $params{'sfd'};
+      $self->{CNT}    = 0;
+      $self->{FUNCS}  = {};
+      $self->{ERRORS} = 0;
+      $self->{WARNS}  = 0;
+      bless ($self, $class);
+      return $self;
+    }
+
+    sub header {
+      my $self      = shift;
+      my $sfd       = $self->{SFD};
+
+      print "Checking SFD for $$sfd{'libname'} ...";
+      $self->{CNT} = 0;
+
+      if ($#{\@{$sfd->{typedefs}}} != -1) {
+          print "\nWarning: SFD uses nonstandard '==typedef' command.";
+          ++$self->{WARNS};
+      }
     }
 
     sub function {
@@ -5391,54 +5420,36 @@ BEGIN {
       my $prototype = $params{'prototype'};
       my $sfd       = $self->{SFD};
 
-      print "* Line $$prototype{'line'}: $$prototype{'funcname'}()\n";
-      print "     Type:             " . ucfirst $$prototype{'type'} . "\n";
-      print "     Subtype:          $prototype->{subtype}\n";
-      if ($prototype->{real_funcname} ne '') {
-          print " Real function name:\t$$prototype{'real_funcname'}\n";
+      if ($self->{FUNCS}{$prototype->{funcname}}) {
+          if ($prototype->{private}) {
+            print "\nWarning: Private function $prototype->{funcname}() ".
+                "is defined more than once!";
+            ++$self->{WARNS};
+          }
+          else {
+            print "\nError: Public function $prototype->{funcname}() ".
+                "is defined more than once!";
+            ++$self->{ERRORS};
+          }
       }
-      print "     Visibility:       ";
-      print $$prototype{'private'} == 0 ? "Public\n" : "Private\n";
-      print "     Library offset/bias:    -$$prototype{'bias'}\n";
-      print "     Available since:  V$$prototype{'version'}\n";
-      print "     Comment:          $$prototype{'comment'}\n";
-      print "\n";
-      print "     No return:        ";
-      print $prototype->{nr} ? "Yes\n" : "No\n";
-      print "     No base:          ";
-      print $prototype->{nb} ? "Yes\n" : "No\n";
-      print "\n";
-      print "     Return value:           $$prototype{'return'}\n";
-      print "     Arguments:        ";
-      print join (",\n\t\t\t\t", @{$$prototype{'args'}});
-      print "\n";
-      print "     Argument names:         ";
-      print join (", ", @{$$prototype{'argnames'}});
-      print "\n";
-      print "     Local arguments:  ";
-      print join (",\n\t\t\t\t", @{$$prototype{'___args'}});
-      print "\n";
-      print "     Local argument names:   ";
-      print join (", ", @{$$prototype{'___argnames'}});
-      print "\n";
-      print "     Argument types:         ";
-      print join (",\n\t\t\t\t", @{$$prototype{'argtypes'}});
-      print "\n";
+      else {
+          $self->{FUNCS}{$prototype->{funcname}} = 1;
+      }
 
-      print "\n";
-
-#           value   => $proto_line,
-
-#    $$prototype{'return'}     = $return;
-#    $$prototype{'funcname'}   = $name;
-#    @{$$prototype{'args'}}     = ();
-#    @{$$prototype{'regs'}} = split(/,/,lc $registers);  # Make regs lower case
-#    @{$$prototype{'argnames'}} = ();                    # Initialize array
-#    @{$$prototype{'argtypes'}} = ();                    # Initialize array
+      ++$self->{CNT};
     }
 
     sub footer {
-      print "\n";
+      my $self = shift;
+      my $sfd  = $self->{SFD};
+
+      if ($self->{WARNS} != 0 || $self->{ERRORS} != 0) {
+          print "\n$self->{WARNS} warning(s), $self->{ERRORS} error(s); ";
+
+          die if $self->{ERRORS};
+      }
+      
+      printf " $self->{CNT} function%s verified\n", $self->{CNT} == 1 ? "" : "s";
     }
 }
 
