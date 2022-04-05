@@ -493,6 +493,7 @@ sub parse_sfd ( $ ) {
     while (my $line = <SFD>) {
 
       ++$line_no;
+      $line =~ s/\r//g; 
       
       for ($line) {
           /==copyright\s/ && do {
@@ -604,7 +605,7 @@ sub parse_sfd ( $ ) {
           die;
       };
       if ( $proto_line =~
-           /.*[A-Za-z0-9_]+\s*\(.*\).*\(((base|sysv|autoreg|[\saAdD][0-7]-?),?)*\)\s*$/
+           /.*[A-Za-z0-9_]+\s*\(.*\).*\(\s*((base|sysv|autoreg|\s*[\saAdD][0-7]-?)\s*,?)*\)\s*$/
            ) {
 
           if ($proto_line =~ /.*\(.*[0-7]-.*\)\s*$/) {
@@ -724,6 +725,27 @@ sub parse_proto ( $$$ ) {
 
     # strip leading+trailing spaces first
     $$prototype{'value'} =~ s/^\s+|\s+$//g;
+	$$prototype{'value'} =~ s/__stdargs//g; # trim __stdargs
+
+#	print STDERR "->" . $$prototype{'value'} . "\n";
+
+	# eliminate double spaces 
+    $$prototype{'value'} =~ s/\s+/ /g;
+	# eliminate spaces befor registers
+    $$prototype{'value'} =~ s/,\s+([ad][0-7])/,${1}/g;
+	# eliminate spaces after opening brackets
+    $$prototype{'value'} =~ s/\(\s+([^,)]+)/\(${1}/g;
+	# eliminate spaces before closing brackets
+    $$prototype{'value'} =~ s/\s+\)/\)/g;
+	# eliminate square brackets - WTF??
+    $$prototype{'value'} =~ s/\[|\]//g;
+	# insert space between )(
+#    $$prototype{'value'} =~ s/\)\(/\) \(/g;
+	# insert space after * if missing
+    $$prototype{'value'} =~ s/\*(\S)/\* ${1}/g;
+
+#	print STDERR "->" . $$prototype{'value'} . "\n";
+	
 
     # we are doing a reverse regexp match here to make the regular expression
     # substantially easier as sfd prototypes can be better matched from the back to the front
