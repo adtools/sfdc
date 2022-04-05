@@ -15,7 +15,7 @@ VERSION		= @PACKAGE_VERSION@
 DATE		= @DATE@
 
 MAIN		= main.pl
-CLASSES		= $(wildcard [A-Z]*.pl)
+CLASSES		= $(sort $(wildcard [A-Z]*.pl))
 PODS		= SFDCompile.pod
 EXECUTABLE	= sfdc
 MAN		= sfdc.1
