@@ -494,7 +494,7 @@ sub parse_sfd ( $ ) {
 
       ++$line_no;
       $line =~ s/\r//g; 
-      
+
       for ($line) {
           /==copyright\s/ && do {
             ( $$result{'copyright'} = $_ ) =~ s/==copyright\s+(.*)\s*/$1/;
@@ -742,7 +742,7 @@ sub parse_proto ( $$$ ) {
 	# insert space between )(
 #    $$prototype{'value'} =~ s/\)\(/\) \(/g;
 	# insert space after * if missing
-    $$prototype{'value'} =~ s/\*(\S)/\* ${1}/g;
+#    $$prototype{'value'} =~ s/\*(\S)/\* ${1}/g;
 
 #	print STDERR "->" . $$prototype{'value'} . "\n";
 	
