@@ -918,7 +918,7 @@ sub parse_proto ( $$$ ) {
             ( $arg =~ /^\s*(.*)\(\s*(\*+)\s*(\w+)\s*\)\s*(\w*\(.*\))\s*/ );
           $type = "$type1($ptr)$type2";
           $___name = "___$name";
-          $___arg = "$type1($ptr"."___$name) $type2";          
+          $___arg = "$type1($ptr"."___$name) $type2";
       }
       elsif ($arg !~ /^\.\.\.$/) {
           ($type, $name) = ( $arg =~ /^\s*(.*?[\s*]*?)\s*(\w+)\s*$/ );
