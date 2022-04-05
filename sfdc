@@ -209,8 +209,9 @@ GetOptions ('addvectors=s' => \$addvectors,
           'version|v'    => \$version) or exit 10;
 
 if ($version) {
-    print STDERR "sfdc 1.11 (2019-03-07)\n";
+    print STDERR "sfdc 1.11c (2022-02-04)\n";
     print STDERR "Copyright (C) 2003-2016 Martin Blom <martin\@blom.org>\n";
+    print STDERR "Patched   in  2021-2022 by Bebbo <bebbo\@bejy.net>\n";
     print STDERR "This is free software; " .
       "see the source for copying conditions.\n";
     exit 0;
@@ -493,7 +494,8 @@ sub parse_sfd ( $ ) {
     while (my $line = <SFD>) {
 
       ++$line_no;
-      
+      $line =~ s/\r//g; 
+
       for ($line) {
           /==copyright\s/ && do {
             ( $$result{'copyright'} = $_ ) =~ s/==copyright\s+(.*)\s*/$1/;
@@ -603,9 +605,11 @@ sub parse_sfd ( $ ) {
             " '$file'. The line looks like this:\n" . $line ;
           die;
       };
+#	  print STDERR "IN " . $proto_line . "\n";
       if ( $proto_line =~
-           /.*[A-Za-z0-9_]+\s*\(.*\).*\(((base|sysv|autoreg|[\saAdD][0-7]-?),?)*\)\s*$/
+           /.*[A-Za-z0-9_]+\s*\(.*\).*\(\s*((base|sysv|autoreg|\s*[\saAdD][0-7]-?)\s*,?)*\)\s*$/
            ) {
+#	  print STDERR "URKS " . $proto_line . "\n";
 
           if ($proto_line =~ /.*\(.*[0-7]-.*\)\s*$/) {
             if (($$classes{'target'} ne 'amigaos') && ($$classes{'target'} ne 'amigaosvbcc')) {
@@ -724,13 +728,34 @@ sub parse_proto ( $$$ ) {
 
     # strip leading+trailing spaces first
     $$prototype{'value'} =~ s/^\s+|\s+$//g;
+	$$prototype{'value'} =~ s/__stdargs//g; # trim __stdargs
 
+	print STDERR "->" . $$prototype{'value'} . "\n";
+
+	# eliminate double spaces 
+    $$prototype{'value'} =~ s/\s+/ /g;
+	# eliminate spaces befor registers
+    $$prototype{'value'} =~ s/,\s+([ad][0-7])/,${1}/g;
+	# eliminate spaces after opening brackets
+    $$prototype{'value'} =~ s/\(\s+([^,)]+)/\(${1}/g;
+	# eliminate spaces before closing brackets
+    $$prototype{'value'} =~ s/\s+\)/\)/g;
+	# eliminate square brackets - WTF??
+    $$prototype{'value'} =~ s/\[|\]//g;
+	# insert space between )(
+#    $$prototype{'value'} =~ s/\)\(/\) \(/g;
+	# insert space after * if missing
+    $$prototype{'value'} =~ s/\*(\S)/\* ${1}/g;
+
+	print STDERR "->" . $$prototype{'value'} . "\n";
+	
     # we are doing a reverse regexp match here to make the regular expression
     # substantially easier as sfd prototypes can be better matched from the back to the front
     # (e.g. always starts with '()')
     $str = $$prototype{'value'};
     @array = (reverse $str) =~ / \)( (?: [^()]* | (?0) )* )\( /xg;
 
+	
     $registers = reverse $array[0];
     $registers =~ s/^\s+|\s+$//g;   # trim whitspaces
     $arguments = reverse $array[1];
@@ -1196,7 +1221,7 @@ BEGIN {
       my $sfd  = $self->{SFD};
 
       print "* \"$$sfd{'libname'}\"\n";
-      print "* Automatically generated FD (sfdc 1.11)! Do not edit!\n";
+      print "* Automatically generated FD (sfdc 1.11c)! Do not edit!\n";
       print "##base _$$sfd{'base'}\n";
       $self->{BIAS}    = -1;
       $self->{PRIVATE} = -1;
@@ -1811,7 +1836,7 @@ BEGIN {
       my $self = shift;
       my $sfd  = $self->{SFD};
 
-      print "/* Automatically generated header (sfdc 1.11)! Do not edit! */\n";
+      print "/* Automatically generated header (sfdc 1.11c)! Do not edit! */\n";
       print "\n";
       print "#ifndef _INLINE_$$sfd{'BASENAME'}_H\n";
       print "#define _INLINE_$$sfd{'BASENAME'}_H\n";
@@ -2125,7 +2150,7 @@ BEGIN {
       my $BaseName  = $$sfd{'BaseName'};
       my $basetype  = $$sfd{'basetype'};
 
-      print "/* Automatically generated header (sfdc 1.11)! Do not edit! */\n";
+      print "/* Automatically generated header (sfdc 1.11c)! Do not edit! */\n";
       print "\n";
       print "#ifndef PROTO_${BASENAME}_H\n";
       print "#define PROTO_${BASENAME}_H\n";
@@ -2385,7 +2410,7 @@ BEGIN {
       $v =~ s/^\$[I]d: .*? ([0-9.]+).*/$1/;
       $d =~ s,^\$[I]d: .*? [0-9.]+ (\d{4})/(\d{2})/(\d{2}).*,($3.$2.$1),;
             
-      print "/* Automatically generated header (sfdc 1.11)! Do not edit! */\n";
+      print "/* Automatically generated header (sfdc 1.11c)! Do not edit! */\n";
       print "\n";
       print "#ifndef CLIB_$$sfd{'BASENAME'}_PROTOS_H\n";
       print "#define CLIB_$$sfd{'BASENAME'}_PROTOS_H\n";
@@ -2500,7 +2525,7 @@ BEGIN {
       my $self = shift;
       my $sfd  = $self->{SFD};
 
-      print "/* Automatically generated function table (sfdc 1.11)! Do not edit! */\n";
+      print "/* Automatically generated function table (sfdc 1.11c)! Do not edit! */\n";
       print "\n";
       print "#ifndef $sfd->{'BASENAME'}_INTERFACE_DEF_H\n";
       print "#define $sfd->{'BASENAME'}_INTERFACE_DEF_H\n";
@@ -2617,7 +2642,7 @@ BEGIN {
       my $self = shift;
       my $sfd  = $self->{SFD};
 
-      print "/* Automatically generated header (sfdc 1.11)! Do not edit! */\n";
+      print "/* Automatically generated header (sfdc 1.11c)! Do not edit! */\n";
       print "\n";
       print "#ifndef _PPCINLINE_$$sfd{'BASENAME'}_H\n";
       print "#define _PPCINLINE_$$sfd{'BASENAME'}_H\n";
@@ -2806,19 +2831,19 @@ BEGIN {
       my $sfd  = $self->{SFD};
 
       if ($self->{PROTO}) {
-          print "/* Automatically generated header (sfdc 1.11)! Do not edit! */\n";
+          print "/* Automatically generated header (sfdc 1.11c)! Do not edit! */\n";
           print "\n";
           print "#ifndef _GATEPROTO_$$sfd{'BASENAME'}_H\n";
           print "#define _GATEPROTO_$$sfd{'BASENAME'}_H\n";
       }
       elsif ($self->{LIBPROTO}) {
-          print "/* Automatically generated header (sfdc 1.11)! Do not edit! */\n";
+          print "/* Automatically generated header (sfdc 1.11c)! Do not edit! */\n";
           print "\n";
           print "#ifndef _LIBPROTO_$$sfd{'BASENAME'}_H\n";
           print "#define _LIBPROTO_$$sfd{'BASENAME'}_H\n";
       }
       else {
-          print "/* Automatically generated gatestubs (sfdc 1.11)! Do not edit! */\n";
+          print "/* Automatically generated gatestubs (sfdc 1.11c)! Do not edit! */\n";
       }
       print "\n";
 
@@ -3637,7 +3662,7 @@ BEGIN {
       my $self = shift;
       my $sfd  = $self->{SFD};
 
-      print "/* Automatically generated function table (sfdc 1.11)! Do not edit! */\n";
+      print "/* Automatically generated function table (sfdc 1.11c)! Do not edit! */\n";
       print "\n";
       print "#ifdef __SFDC_FUNCTABLE_M68K__\n";
       print "# define _sfdc_func(f) &m68k ## f\n";
@@ -3798,7 +3823,7 @@ BEGIN {
       $v =~ s/^\$[I]d: .*? ([0-9.]+).*/$1/;
       $d =~ s,^\$[I]d: .*? [0-9.]+ (\d{4})/(\d{2})/(\d{2}).*,($3.$2.$1),;
 
-      print "/* Automatically generated header (sfdc 1.11)! Do not edit! */\n";
+      print "/* Automatically generated header (sfdc 1.11c)! Do not edit! */\n";
       print "#ifndef PRAGMAS_$sfd->{BASENAME}_PRAGMAS_H\n";
       print "#define PRAGMAS_$sfd->{BASENAME}_PRAGMAS_H\n";
       print "\n";
@@ -3930,7 +3955,7 @@ BEGIN {
 
       $self->{NEWFILE} = 1;
 
-      print "/* Automatically generated stubs (sfdc 1.11)! Do not edit! */\n";
+      print "/* Automatically generated stubs (sfdc 1.11c)! Do not edit! */\n";
       print "\n";
 
       foreach my $inc (@{$$sfd{'includes'}}) {
@@ -4212,7 +4237,7 @@ BEGIN {
       my $self = shift;
       my $sfd  = $self->{SFD};
 
-      print "* Automatically generated header (sfdc 1.11)! Do not edit!\n";
+      print "* Automatically generated header (sfdc 1.11c)! Do not edit!\n";
       print "     IFND  LVO_$sfd->{BASENAME}_LIB_I\n";
       print "LVO_$sfd->{BASENAME}_LIB_I   SET   1\n";
       print "\n";
@@ -4788,7 +4813,7 @@ BEGIN {
       my $self = shift;
       my $sfd  = $self->{SFD};
 
-      print "/* Automatically generated header (sfdc 1.11)! Do not edit! */\n";
+      print "/* Automatically generated header (sfdc 1.11c)! Do not edit! */\n";
       print "\n";
       if ($sfd->{base} ne '') {
           print "#ifdef __cplusplus\n";
