@@ -145,8 +145,15 @@ BEGIN {
             printf "struct $struct;\n";
       }
 
-      
-      print "__inline $$prototype{'return'}\n";
+
+      my $rettype_prefix = $prototype->{return};
+      my $rettype_postfix = "";
+      if ($prototype->{return} =~ /(.*\(\*+)(\).*)/) {
+        $rettype_prefix = $1;
+        $rettype_postfix = $2;
+      }
+
+      print "__inline $rettype_prefix\n";
       print "$$prototype{'funcname'}(";
       if (!$prototype->{nb}) {
           if ($$prototype{'numargs'} == 0) {
@@ -157,7 +164,7 @@ BEGIN {
           }
       }
       print join (', ', @{$$prototype{'___args'}});
-      print ")";
+      print ")$rettype_postfix";
       
     }
 

@@ -930,16 +930,17 @@ sub parse_proto ( $$$ ) {
       my $___name = '';
       my $___arg  = '';
 
-      # MorhOS includes use __CLIB_PROTOTYPE for some reason ...
+      # MorphOS includes use __CLIB_PROTOTYPE for some reason ...
       if ($arg =~ /.*\(.*?\)\s*(__CLIB_PROTOTYPE)?\(.*\)/) {
           my $type1;
           my $type2;
-          
-          ($type1, $name, $type2) =
-            ( $arg =~ /^\s*(.*)\(\s*\*+\s*(\w+)\s*\)\s*(\w*\(.*\))\s*/ );
-          $type = "$type1(*)$type2";
+          my $ptr;
+
+          ($type1, $ptr, $name, $type2) =
+            ( $arg =~ /^\s*(.*)\(\s*(\*+)\s*(\w+)\s*\)\s*(\w*\(.*\))\s*/ );
+          $type = "$type1($ptr)$type2";
           $___name = "___$name";
-          $___arg = "$type1(*___$name) $type2";
+          $___arg = "$type1($ptr"."___$name) $type2";
       }
       elsif ($arg !~ /^\.\.\.$/) {
           ($type, $name) = ( $arg =~ /^\s*(.*?[\s*]*?)\s*(\w+)\s*$/ );
