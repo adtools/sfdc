@@ -22,7 +22,7 @@ BEGIN {
       
       my $regswap = "";
       
-      my $function_start = $$prototype{'return'} ." __" . $$prototype{'funcname'} . "(__reg(\"a6\") struct Library * ";
+      my $function_start = $$prototype{'return'} ." __" . $$prototype{'funcname'} . "(__reg(\"a6\") void * ";
       my $function = $function_start;
       
       if ($$prototype{private})

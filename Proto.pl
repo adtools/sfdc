@@ -38,6 +38,8 @@ BEGIN {
       print "#  else\n";
       print "#   include <inline/${basename}.h>\n";
       print "#  endif\n";
+      print "# elif defined(__VBCC__)\n";
+      print "#   include <inline/${basename}_protos.h>\n";
       print "# else\n";
       print "#  include <pragmas/${basename}_pragmas.h>\n";
       print "# endif\n";
