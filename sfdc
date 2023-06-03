@@ -3386,7 +3386,8 @@ BEGIN {
 
       if ($$prototype{'type'} eq 'function') {
           printf "      AROS_LC%d%s(%s, %s, \\\n",
-          $$prototype{'numargs'}, $prototype->{nb} ? "I" : "",
+          $$prototype{'numargs'},
+          $$prototype{'return'} eq 'void' || $$prototype{'return'} eq 'VOID' ? "NR" : "",
           $$prototype{'return'}, $$prototype{'funcname'};
       }
       else {
